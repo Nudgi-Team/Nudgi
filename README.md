@@ -1,16 +1,32 @@
 # Nudgi
 
+## System Intent
+
+In Nudgi, players race to be the first to escape with their treasures out of a treacherous and chaotic labyrinth.
+
+## Development cycle information
+
+- Current cycle: 1
+- Cycle Intent: 
+
+
+## Useful links
+- [General planning](https://docs.google.com/document/d/1OdQo34TRY2Hrxp1SSklVcMOJ-Jqr4Vcy3ZOWPZyE4w0/edit?tab=t.0 "Planning document")
+- [Current status report](https://docs.google.com/document/d/10v7Pbj6k7JzzrXYRHgn1d2ci_lSR2HV-/edit#heading=h.sikzabrle87h "Status Report")
+
+
+
+
+## LibGDX project information
+
 A [libGDX](https://libgdx.com/) project generated with [gdx-liftoff](https://github.com/libgdx/gdx-liftoff).
 
-This project was generated with a template including simple application launchers and an `ApplicationAdapter` extension that draws libGDX logo.
-
-## Platforms
+### Platforms
 
 - `core`: Main module with the application logic shared by all platforms.
 - `lwjgl3`: Primary desktop platform using LWJGL3; was called 'desktop' in older docs.
-- `headless`: Desktop platform without a graphical interface.
 
-## Gradle
+### Gradle
 
 This project uses [Gradle](https://gradle.org/) to manage dependencies.
 The Gradle wrapper was included, so you can run Gradle tasks using `gradlew.bat` or `./gradlew` commands.

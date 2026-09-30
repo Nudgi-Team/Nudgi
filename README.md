@@ -18,6 +18,8 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 
 ### Active
 
+- [Board Generation](https://docs.google.com/document/d/19BRlh5dH7QUcwaI_E5GW7xfTjaoWrT1LOBStvioODJo/edit?tab=t.0 "Board Generation")
+
 ### Completed
 
 ### Upcoming

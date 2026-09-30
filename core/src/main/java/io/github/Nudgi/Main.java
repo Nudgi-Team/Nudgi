@@ -10,6 +10,8 @@ public class Main extends ApplicationAdapter {
     private SpriteBatch batch;
     private Texture image;
 
+    private Board board;
+
     @Override
     public void create() {
         batch = new SpriteBatch();

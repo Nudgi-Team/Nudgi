@@ -14,7 +14,13 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 - [General planning](https://docs.google.com/document/d/1OdQo34TRY2Hrxp1SSklVcMOJ-Jqr4Vcy3ZOWPZyE4w0/edit?tab=t.0 "Planning document")
 - [Current status report](https://docs.google.com/document/d/10v7Pbj6k7JzzrXYRHgn1d2ci_lSR2HV-/edit#heading=h.sikzabrle87h "Status Report")
 
+## Design Docs
 
+### Active
+
+### Completed
+
+### Upcoming
 
 
 ## LibGDX project information

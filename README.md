@@ -2,7 +2,7 @@
 
 ## System Intent
 
-In Nudgi, players race to be the first to escape with their treasures out of a treacherous and chaotic labyrinth.
+In Nudgi, players race to be the first to escape with their treasures out of a treacherous labyrinth, bending the labyrinth to their advantage to compete for a spot on the leaderboards.
 
 ## Development cycle information
 

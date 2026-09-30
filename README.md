@@ -7,7 +7,7 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 ## Development cycle information
 
 - Current cycle: 1
-- Cycle Intent: 
+- Cycle Intent: Build a workable, bare-bones version of the game that clients can play.
 
 
 ## Useful links

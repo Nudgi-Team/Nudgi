@@ -12,9 +12,13 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 
 ## Useful links
 - [General planning](https://docs.google.com/document/d/1OdQo34TRY2Hrxp1SSklVcMOJ-Jqr4Vcy3ZOWPZyE4w0/edit?tab=t.0 "Planning document")
-- [Current status report](https://docs.google.com/document/d/10v7Pbj6k7JzzrXYRHgn1d2ci_lSR2HV-/edit#heading=h.sikzabrle87h "Status Report")
+- [Current status report]
+- Past status reports:
+    - [Cycle 1 Report #1](https://docs.google.com/document/d/10v7Pbj6k7JzzrXYRHgn1d2ci_lSR2HV-/edit#heading=h.sikzabrle87h "Cycle 1 Status Report 1")
 
 ## Design Docs
+
+### [Template](https://docs.google.com/document/d/15QqPoigbQFneIwy-A7bhc5gTs5FZ6y1akalJa--ZtyA/edit?tab=t.0 "Design Doc Template")
 
 ### Active
 
@@ -24,6 +28,7 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 
 ### Upcoming
 
+- [Networking](https://docs.google.com/document/d/17Nrr1fzNYtPUSSX8ve5Je1b2VpxK9WhOguunlntGuw4/edit?tab=t.0 "Networking")
 
 ## LibGDX project information
 

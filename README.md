@@ -22,7 +22,7 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 
 ### Active
 
-- [Board Generation](https://docs.google.com/document/d/19BRlh5dH7QUcwaI_E5GW7xfTjaoWrT1LOBStvioODJo/edit?tab=t.0 "Board Generation")
+- [Board Generation](https://docs.google.com/document/d/1zmD4rErnJfma34ZQIkqu5GK1MK8kTl2Em-iosYw3BMw/edit?tab=t.0 "Board Generation")
 - [Player Movement](https://docs.google.com/document/d/1OoFnqLHhqvbsDqlvGJ6PraHWxcEl1Uih7ygQsbs8Paw/edit?tab=t.0 "Player Movement")
 
 ### Completed

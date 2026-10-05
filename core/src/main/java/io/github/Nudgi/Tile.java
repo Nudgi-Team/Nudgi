@@ -19,7 +19,7 @@ public class Tile {
         paths |= west ? 8:0;
 
         int NORTH = 1, EAST = 2, SOUTH = 4, WEST = 8;
-        setRotation(Integer.bitCount(paths));
+        setSprite(Integer.bitCount(paths));
     }
 
     public Tile(){
@@ -37,10 +37,10 @@ public class Tile {
             paths |= (1<<dir);
         }
 
-        setRotation(pathAmount);
+        setSprite(pathAmount);
     }
 
-    private void setRotation(int pathAmount){
+    private void setSprite(int pathAmount){
         int NORTH = 1, EAST = 2, SOUTH = 4, WEST = 8;
         switch(pathAmount){
             case 0: sprite = new Texture("EmptyTile.png");break; // No Rotations

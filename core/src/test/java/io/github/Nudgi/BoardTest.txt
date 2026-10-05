@@ -1,0 +1,5 @@
+Test: Play it for 3 iterations. Check for constraints:
+- Corner tiles must be free each time.
+- The board must change on each iteration by at least 1 tile. 
+
+

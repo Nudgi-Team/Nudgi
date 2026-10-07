@@ -1,0 +1,59 @@
+
+No Player Selected Tests:
+Test 1 - Click off board:
+    Action: Click on coordinates outside of the boards boundary
+    Expected:
+        No tiles highlighted
+        No player state changed
+        No errors logged
+
+Test 2 - Click on tile without player:
+    Action: Click on any board tile with no player on it
+    Expected:
+        No tiles highlighted
+        No player state changed
+        No errors logged
+
+Player Selection Tests:
+Test 3 - Player selection:
+    Action: Click on tile the player is on
+    Expected:
+        Random number generated (1-6)
+        BFS highlights only tiles within that distance.
+        BFS doesn't ignore any walls
+        Game waits for new user input
+
+Test 4 - Valid Role:
+    Action: After Player Selected
+    Expected:
+        Role should be between 1-6
+        Role should have an even distribution of results
+        Role should be used when getting the tiles the player can move to
+
+Test 5 - Valid Highlighted Tiles:
+    Action: After Player Selected
+    Expected:
+        Stops at rolled distance
+        Does not pass through any tile's walls
+        Tile player is standing on should NOT be highlighted
+
+Movement Tests:
+Test 6 - Invalid Tile Clicked:
+    Action: Click on not highlighted tile (player can't move there)
+    Expected:
+        The same tiles highlighted
+        Game continues to wait for user input
+        No errors logged
+
+Test 7 - Click on Player's Current Tile (Player must move):
+    Action: Click on the tile the player is currently on
+    Expected:
+        The same tiles highlighted
+        Game continues to wait for user input
+        No errors logged
+
+Test 8 - Click on Valid Tile:
+    Action: Click on a highlighted tile (Player can move there)
+    Expected:
+        Player is moved to selected tile
+        Highlights are removed

@@ -6,7 +6,6 @@ import com.badlogic.gdx.math.Vector2;
 public class Board {
     private Tile[][] tiles;
     private Vector2 position;
-    private float size;
     private Vector2 gridSize;
     private float tileSize;
 
@@ -23,7 +22,7 @@ public class Board {
             _position.x + (_size - boardWidth)  / 2f,
             _position.y + (_size - boardHeight) / 2f
         );
-
+        
         generateBoard(gridSize);
     }
 
@@ -43,6 +42,19 @@ public class Board {
         }
     }
 
+    public Vector2 getPosition() {
+        return new Vector2(position);
+    }
+    
+    public float getTileSize() {
+        return tileSize;
+    }
+
+    public Vector2 getGridSize() {
+        return new Vector2(gridSize);
+    }
+
+
     public void draw(Batch batch){
         for(int x = 0; x < gridSize.x; x++){
             for(int y = 0; y < gridSize.y; y++){
@@ -51,4 +63,6 @@ public class Board {
             }
         }
     }
+    
+
 }

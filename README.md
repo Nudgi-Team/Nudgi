@@ -24,13 +24,15 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 
 - [Board Shifting](https://docs.google.com/document/d/1OEnIwxenCAzS8PM1t6CFdrwAKfLscrAUecjFLZhto10/edit?tab=t.0 "Board Shifting")
 
+- [Networking](https://docs.google.com/document/d/17Nrr1fzNYtPUSSX8ve5Je1b2VpxK9WhOguunlntGuw4/edit?tab=t.0 "Networking")
+
 ### Completed
 
 - [Board Generation](https://docs.google.com/document/d/1zmD4rErnJfma34ZQIkqu5GK1MK8kTl2Em-iosYw3BMw/edit?tab=t.0 "Board Generation")
 
 ### Upcoming
 
-- [Networking](https://docs.google.com/document/d/17Nrr1fzNYtPUSSX8ve5Je1b2VpxK9WhOguunlntGuw4/edit?tab=t.0 "Networking")
+- 
 
 ## Meeting Summaries - [Template](https://docs.google.com/document/d/1YBH1sPN3Tn1IL58iR_LdvnfkF7CgVUHUkOxGYOes0Q4/edit?tab=t.0 "Meeting Summary Template (copy to use)")
 

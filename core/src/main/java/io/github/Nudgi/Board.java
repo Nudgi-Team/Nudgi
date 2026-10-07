@@ -42,6 +42,7 @@ public class Board {
         }
     }
 
+
     public Vector2 getPosition() {
         return new Vector2(position);
     }
@@ -63,6 +64,4 @@ public class Board {
             }
         }
     }
-    
-
 }

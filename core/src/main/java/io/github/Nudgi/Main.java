@@ -20,7 +20,6 @@ public class Main extends ApplicationAdapter {
         Vector2 windowSize = new Vector2(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         float boardSize = Math.min(windowSize.x, windowSize.y) - marginSize*2;
 
-        
         batch = new SpriteBatch();
         uiStage = new Stage();
         board = new Board(new Vector2(windowSize.x/2-boardSize/2,windowSize.y/2-boardSize/2), boardSize, new Vector2(9,9));

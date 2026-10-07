@@ -10,8 +10,8 @@ import com.badlogic.gdx.utils.Disposable;
 
 public class GameManager implements Disposable {
     private Player[] players = new Player[4];
-    private int turnIndex = 0;
     private Board board;
+    int currentMovement;
 
     public GameManager(Board board, Stage stage) {
         Vector2[] cornerPositions = {
@@ -37,19 +37,15 @@ public class GameManager implements Disposable {
             players[i].addListener(this::handlePlayerClick);
         }
         this.board = board;
-        players[turnIndex].turnPlayer = true;
+        generateRandomMovement();
     }
 
     public void draw(SpriteBatch batch) {
         board.draw(batch);
     }
 
-    private void advanceTurn() {
-        players[turnIndex].turnPlayer = false;
-        players[turnIndex].selected = false;
-        turnIndex++;
-        turnIndex %= players.length;
-        players[turnIndex].turnPlayer = true;
+    private void generateRandomMovement() {
+        currentMovement = ThreadLocalRandom.current().nextInt(1, 7);
     }
 
     @Override 
@@ -59,20 +55,19 @@ public class GameManager implements Disposable {
     }
 
     public void handlePlayerClick(int playerID) {
-        System.out.println("Hello World");
-        if (players[playerID].turnPlayer) {
-            System.out.println("TurnPlayer");
-            if (!players[playerID].selected) {
-                System.out.println("TurnPlayer Selected");
+        if (!players[playerID].selected) {
+            System.out.println("Player " + playerID + " selected");
+            players[playerID].selected = true;
+            for (Player p: players) {
+                if (p.equals(players[playerID])) { continue; }
+                p.selected = false;
+            }
 
-                players[playerID].selected = true;
-                int roll = ThreadLocalRandom.current().nextInt(1, 7);
-                // Now, show all tiles that player can reach.
-            }
-            else {
-                System.out.println("TurnPlayer Ended");
-                advanceTurn();
-            }
+            // Now, show all tiles that player can reach.
+
+        }
+        else {
+            players[playerID].selected = false;
         }
     }
 }

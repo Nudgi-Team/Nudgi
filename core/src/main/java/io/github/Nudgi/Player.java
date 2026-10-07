@@ -1,7 +1,5 @@
 package io.github.Nudgi;
 
-import java.util.List;
-
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -13,7 +11,6 @@ public class Player {
     private Image playerImage;
     private ArrayList<PlayerListener> listeners = new ArrayList<>();
     public final int playerID;
-    public boolean turnPlayer = false;
     public boolean selected = false;
 
     public Player(int x, int y, int width, int height, Stage stage, int playerID) {        
@@ -43,5 +40,14 @@ public class Player {
                 event.handle();
             }
         }
+    }
+
+    @Override 
+    public boolean equals(Object other) {
+        if (other instanceof Player) {
+            Player p = (Player)other;
+            return p.playerID == this.playerID;
+        }
+        return false;
     }
 }

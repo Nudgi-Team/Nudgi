@@ -4,26 +4,43 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 
+import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Tile {
     Texture sprite = new Texture("EmptyTile.png");
+    static Texture highlight = new Texture("highlight.png");
     int paths = 0;
     int rotation = 1;
+    public final int tileID;
+    public ArrayList<Player> players = new ArrayList<>();
+    public Image image;
+    private boolean highlighted = false;
+    private final OnClickListener clickListener;
 
-    public Tile(boolean north, boolean south, boolean east, boolean west){
-        paths |= north ? 1:0;
-        paths |= east ? 2:0;
-        paths |= south ? 4:0;
-        paths |= west ? 8:0;
+    public Tile(boolean north, boolean south, boolean east, boolean west, int tileID){
+        this.tileID = tileID;
 
         int NORTH = 1, EAST = 2, SOUTH = 4, WEST = 8;
+        paths |= north ? NORTH:0;
+        paths |= east ? EAST:0;
+        paths |= south ? SOUTH:0;
+        paths |= west ? WEST:0;
+
         setSprite(Integer.bitCount(paths));
+        image = new Image(sprite);
+        clickListener = new OnClickListener(tileID);
+        image.addListener(clickListener);
     }
 
-    public Tile(){
+    public Tile(int tileID){
+        this.tileID = tileID;
         generatePaths();
+        image = new Image(sprite);
+        clickListener = new OnClickListener(tileID);
+        clickListener.bindToActor(image);
     }
 
     private void generatePaths(){
@@ -55,11 +72,11 @@ public class Tile {
                 break;
             case 3:
                 sprite = new Texture("ForkTile.png");
-                if(!hasPath(NORTH)){
+                if(!hasPath(SOUTH)){
                     rotation = 0;
                 } else if(!hasPath(EAST)){
                     rotation = 1;
-                } else if(!hasPath(WEST)){
+                } else if(!hasPath(NORTH)){
                     rotation = 2;
                 } else{
                     rotation = 3;
@@ -76,9 +93,9 @@ public class Tile {
     private int getBentRotation() {
         int NORTH = 1, EAST = 2, SOUTH = 4, WEST = 8;
 
-        if(hasPath(SOUTH) && hasPath(EAST)) return 0;
-        if(hasPath(NORTH) && hasPath(EAST)) return 1;
-        if(hasPath(NORTH) && hasPath(WEST)) return 2;
+        if(hasPath(NORTH) && hasPath(WEST)) return 0;
+        if(hasPath(SOUTH) && hasPath(WEST)) return 1;
+        if(hasPath(SOUTH) && hasPath(EAST)) return 2;
         return 3;
     }
 
@@ -88,7 +105,24 @@ public class Tile {
         return (paths & dir) != 0;
     }
 
+    public boolean hasPath(Direction dir) {
+        return hasPath(dir.mask());
+    }
+
+    public void setListener(IdentifyingListener listener) {
+        clickListener.setListener(listener);
+    }
+
+    public boolean isHighlighted() {
+        return highlighted;
+    }
+
+    public void setHighlighted(boolean highlighted) {
+        this.highlighted = highlighted;
+    }
+
     public void draw(Batch batch, Vector2 position, float tileSize){
         batch.draw(new TextureRegion(sprite), position.x, position.y, tileSize/2, tileSize/2, tileSize, tileSize, 1,1,rotation * 90);
+        batch.draw(highlight, position.x, position.y, tileSize, tileSize);
     }
 }

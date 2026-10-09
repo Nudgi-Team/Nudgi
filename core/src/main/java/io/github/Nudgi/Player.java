@@ -1,53 +1,55 @@
 package io.github.Nudgi;
 
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import java.util.ArrayList;
+
 public class Player {
     private static final Texture playerTexture = new Texture("Player.png");
     private Image playerImage;
-    private ArrayList<PlayerListener> listeners = new ArrayList<>();
-    public final int playerID;
-    public boolean selected = false;
+    private final OnClickListener clickListener;
 
-    public Player(int x, int y, int width, int height, Stage stage, int playerID) {        
+    /**
+     * A unique identifier for the Player.
+     */
+    public final int playerID;
+
+    /**
+     * Constructs a new player with its own {@link Image}.
+     * @param x the position of the Image's bottom left corner.
+     * @param y
+     * @param width the width of the Image.
+     * @param height the height of the Image.
+     * @param stage the {@link Stage} to place the Image onto.
+     * @param playerID a unique identifier for this instance.
+     */
+    public Player(float x, float y, float width, float height, Stage stage, int playerID) {        
         playerImage = new Image(playerTexture);
         playerImage.setPosition(x, y);
         playerImage.setWidth(width);
         playerImage.setHeight(height);
-        playerImage.addListener(new PlayerClickListener());
 
         stage.addActor(playerImage);
         this.playerID = playerID;
+        this.clickListener = new OnClickListener(playerID);
+        clickListener.bindToActor(playerImage);
     }
     
     public static void dispose() {
         playerTexture.dispose();
     }
 
-    public void addListener(PlayerListener listener) {
-        listeners.add(listener);
+    /**
+     * Sets the {@code listener} to this instance, invoked each time the player is clicked.
+     * @param listener the {@link IdentifyingListener listener} to bind to this instance.
+     */
+    public void setListener(IdentifyingListener listener) {
+        this.clickListener.setListener(listener);
     }
 
-    private class PlayerClickListener extends ClickListener {	
-        @Override
-        public void clicked(InputEvent event, float x, float y) {
-            for (PlayerListener listener: listeners) {
-                listener.onClick(playerID);
-                event.handle();
-            }
-        }
-    }
-
-    @Override 
-    public boolean equals(Object other) {
-        if (other instanceof Player) {
-            Player p = (Player)other;
-            return p.playerID == this.playerID;
-        }
-        return false;
+    
+    public void moveImage(Vector2 newWorldPos) {
+        playerImage.setPosition(newWorldPos.x, newWorldPos.y);
     }
 }

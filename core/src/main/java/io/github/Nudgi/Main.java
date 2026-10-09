@@ -22,7 +22,7 @@ public class Main extends ApplicationAdapter {
 
         batch = new SpriteBatch();
         uiStage = new Stage();
-        board = new Board(new Vector2(windowSize.x/2-boardSize/2,windowSize.y/2-boardSize/2), boardSize, new Vector2(9,9));
+        board = new Board(new Vector2(windowSize.x/2-boardSize/2,windowSize.y/2-boardSize/2), boardSize, new Vector2(9,9), uiStage);
         game = new GameManager(board, uiStage);
         Gdx.input.setInputProcessor(uiStage);
     }

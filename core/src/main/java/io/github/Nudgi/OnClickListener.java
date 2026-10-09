@@ -3,7 +3,6 @@ package io.github.Nudgi;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.scenes.scene2d.EventListener;
 
 /**
  * Used as a bridge to libGDX's {@code ClickListener} and Actor event system.
@@ -24,14 +23,6 @@ public class OnClickListener extends ClickListener {
      */
     public OnClickListener(int id) {
         this.id = id;
-    }
-
-    /**
-     * Alternative to {@link Actor#addListener(EventListener)}.
-     * @param actor
-     */
-    public void bindToActor(Actor actor) {
-        actor.addListener(this);
     }
 
     /**

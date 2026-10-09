@@ -88,7 +88,6 @@ public class GameManager implements Disposable {
                     visited.add(pos);
                     List<Vector2> adjacent = board.getAdjacentPositions(pos, true);
                     for (Vector2 item: adjacent) {
-                        System.out.println("ADJACENT: " + item);
                         if (!visited.contains(item)) {
                             found.add(item);
                         }
@@ -96,6 +95,7 @@ public class GameManager implements Disposable {
                 }
                 explore.addAll(found);
             }
+            System.out.println("Targets:");
             for (Vector2 moveEligible: visited) {
                 System.out.println(moveEligible);
                 board.fetchTile(moveEligible).setHighlighted(true);
@@ -103,14 +103,22 @@ public class GameManager implements Disposable {
             System.out.println("Available movement: " + currentMovement);
         }
         else {
+            System.out.println("Player " + selectedPlayer.playerID + " stayed put!");
             resetTurnContext();
         }
     }
 
     private void handleTileClick(int tileID) {
+        if (selectedPlayer == null) { return; }
         Board.TileInfo target = board.fetchTile(tileID);
-        if (target.tile.isHighlighted() && selectedPlayer != null && !target.tile.players.contains(selectedPlayer)) {
-            movePlayer(selectedPlayer, target.pos);
+        if (target.tile.isHighlighted()) {
+            if (!target.tile.containsPlayer(selectedPlayer)) {
+                movePlayer(selectedPlayer, target.pos);
+            }
+            else {
+                System.out.println("Player " + selectedPlayer.playerID + " stayed put!");
+                resetTurnContext();
+            }
         }
     }
 

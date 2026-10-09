@@ -33,7 +33,7 @@ public class Player {
         stage.addActor(playerImage);
         this.playerID = playerID;
         this.clickListener = new OnClickListener(playerID);
-        clickListener.bindToActor(playerImage);
+        playerImage.addListener(clickListener);
     }
     
     public static void dispose() {

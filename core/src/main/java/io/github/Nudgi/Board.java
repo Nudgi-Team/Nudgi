@@ -9,7 +9,6 @@ import java.util.function.Predicate;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
 public class Board {
     private Tile[][] tiles;
@@ -32,28 +31,24 @@ public class Board {
         generateBoard(gridSize);
         forEachTile((pos, target) -> {
             Vector2 worldPos = toWorldPos(pos);
-            target.image.setPosition(worldPos.x, worldPos.y);
-            target.image.setWidth(tileSize);
-            target.image.setHeight(tileSize);
-            target.image.setOrigin(tileSize/2, tileSize/2);
-            target.image.setRotation(target.rotation*90);
-            stage.addActor(target.image);
+            target.setGraphics(worldPos.x, worldPos.y, tileSize, tileSize);
+            target.addToStage(stage);
         });
     }
 
 
     private void generateBoard(Vector2 gridSize){
         tiles = new Tile[(int) gridSize.x][(int) gridSize.y];
-        int id = 1;
+        int id = 0;
         for(int x = 0; x < gridSize.x; x++){
             for(int y = 0; y < gridSize.y; y++){
+                id++;
                 // If tile is at the corner, set the tiles shape
                 if((x == 0 || x == gridSize.x-1) && (y == 0 || y == gridSize.y-1)){
                     tiles[x][y] = new Tile(y == 0, y != 0, x == 0, x != 0, id);
                     continue;
                 }
                 tiles[x][y] = new Tile(id);
-                id++;
             }
         }
     }
@@ -104,7 +99,7 @@ public class Board {
     }
 
     public Vector2 getPlayerPosition(Player p) {
-        Optional<TileInfo> container = search(info -> info.tile.players.contains(p));
+        Optional<TileInfo> container = search(info -> info.tile.containsPlayer(p));
         return container.orElseThrow(IllegalArgumentException::new).pos;
     }
 
@@ -120,8 +115,8 @@ public class Board {
         Tile startingTile = fetchTile(getPlayerPosition(p));
         Tile endingTile = fetchTile(newLocation);
     
-        startingTile.players.remove(p);
-        endingTile.players.add(p);
+        startingTile.removePlayer(p);
+        endingTile.addPlayer(p);
     }
 
     public void setListenerAllTiles(IdentifyingListener listener) {
@@ -144,7 +139,7 @@ public class Board {
      */
     public void initializePlayer(Player p, Vector2 startingLocation) {
         Tile start = fetchTile(startingLocation);
-        start.players.add(p);
+        start.addPlayer(p);
     }
 
     public Vector2 getPosition() {
@@ -194,8 +189,8 @@ public class Board {
 
     /**
      * Iterates through every tile, passing in both its position and the {@code Tile} itself
-     * to the provided argument.
-     * @param func the method to be called
+     * to the provided argument for each tile.
+     * @param func the method to be called once per tile
      */
     public void forEachTile(BiConsumer<Vector2, Tile> func) {
         for (int x = 0; x < gridSize.x; x++) {

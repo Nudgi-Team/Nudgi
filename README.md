@@ -21,9 +21,7 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 ### Active
 
 - [Player Movement](https://docs.google.com/document/d/1xKP9NifVkKyYLq4-aHesP8PpuBHuFJWMUUbH6KvO2oY/edit?tab=t.0 "Player Movement")
-
 - [Board Shifting](https://docs.google.com/document/d/1OEnIwxenCAzS8PM1t6CFdrwAKfLscrAUecjFLZhto10/edit?tab=t.0 "Board Shifting")
-
 - [Networking](https://docs.google.com/document/d/17Nrr1fzNYtPUSSX8ve5Je1b2VpxK9WhOguunlntGuw4/edit?tab=t.0 "Networking")
 
 ### Completed
@@ -32,7 +30,8 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 
 ### Upcoming
 
-- 
+- [Turn Management](https://docs.google.com/document/d/1NOCoOTdKG_9spo3uMet2lnwfgNiNHnXw6t-LcNTdTH8/edit?tab=t.0 "Turn Management")
+- [Board Objects](https://docs.google.com/document/d/1zg5x2khFJc299fgYcZNbo1OLq5wmPSmK8lM4O7iFAVQ/edit?tab=t.0 "Board Objects")
 
 ## Meeting Summaries - [Template](https://docs.google.com/document/d/1YBH1sPN3Tn1IL58iR_LdvnfkF7CgVUHUkOxGYOes0Q4/edit?tab=t.0 "Meeting Summary Template (copy to use)")
 

@@ -58,12 +58,12 @@ public class Board {
     private boolean blockedByWall(Vector2 pos1, Vector2 pos2, Direction from1to2) {
         Tile tile1 = fetchTile(pos1);
         Tile tile2 = fetchTile(pos2);
-        
+
         return (!tile1.hasPath(from1to2) || !tile2.hasPath(from1to2.inverse()));
     }
 
     /**
-     * 
+     *
      * @param fromPosition the starting position.
      * @param onlyNonBlocked if true, only returns positions not blocked by a wall.
      * @return the array of adjacent tiles.
@@ -91,7 +91,7 @@ public class Board {
 
     /**
      * Converts a position on the board grid to a world position for rendering.
-     * @param gridPos 
+     * @param gridPos
      * @return the world position equivalent of the argument.
      */
     public Vector2 toWorldPos(Vector2 gridPos) {
@@ -114,7 +114,7 @@ public class Board {
     public void movePlayer(Player p, Vector2 newLocation) {
         Tile startingTile = fetchTile(getPlayerPosition(p));
         Tile endingTile = fetchTile(newLocation);
-    
+
         startingTile.removePlayer(p);
         endingTile.addPlayer(p);
     }
@@ -123,7 +123,7 @@ public class Board {
         forEachTile((pos, tile) -> {
             tile.setListener(listener);
         });
-    } 
+    }
 
 
     public void clearHighlights() {
@@ -142,10 +142,33 @@ public class Board {
         start.addPlayer(p);
     }
 
+    public int[] getAllPaths() {
+        int[] result = new int[(int) (gridSize.x * gridSize.y)];
+        int i = 0;
+        for (int x = 0; x < gridSize.x; x++) {
+            for (int y = 0; y < gridSize.y; y++) {
+                result[i++] = tiles[x][y].getPaths();
+            }
+        }
+        return result;
+    }
+
+    public void applyAllPaths(int[] paths) {
+        if (paths.length != (int) (gridSize.x * gridSize.y)) {
+            throw new IllegalArgumentException("Board size mismatch");
+        }
+        int i = 0;
+        for (int x = 0; x < gridSize.x; x++) {
+            for (int y = 0; y < gridSize.y; y++) {
+                tiles[x][y].setPaths(paths[i++]);
+            }
+        }
+    }
+
     public Vector2 getPosition() {
         return new Vector2(position);
     }
-    
+
     public float getTileSize() {
         return tileSize;
     }
@@ -157,7 +180,7 @@ public class Board {
 
     public Tile fetchTile(Vector2 pos) {
         return tiles[(int)pos.x][(int)pos.y];
-    } 
+    }
 
 
     public TileInfo fetchTile(int id) {
@@ -165,15 +188,6 @@ public class Board {
         return container.orElseThrow(IllegalArgumentException::new);
     }
 
-
-    /**
-     * Searches through each tile, then if the provided predicate is true, returns
-     * an Optional containing a TileInfo populated with both the matching tile and its position.
-     * Otherwise, if none match, returns an empty Optional.
-     * @param predicate the condition to check each tile against
-     * @return an Optional containing the TileInfo of the first tile matching the predicate,
-     * if any; otherwise an empty Optional.
-     */
     public Optional<TileInfo> search(Predicate<TileInfo> predicate) {
         for (int x = 0; x < gridSize.x; x++) {
             for (int y = 0; y < gridSize.y; y++) {
@@ -187,11 +201,6 @@ public class Board {
     }
 
 
-    /**
-     * Iterates through every tile, passing in both its position and the {@code Tile} itself
-     * to the provided argument for each tile.
-     * @param func the method to be called once per tile
-     */
     public void forEachTile(BiConsumer<Vector2, Tile> func) {
         for (int x = 0; x < gridSize.x; x++) {
             for (int y = 0; y < gridSize.y; y++) {

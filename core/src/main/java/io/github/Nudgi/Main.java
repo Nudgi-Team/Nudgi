@@ -30,6 +30,7 @@ public class Main extends ApplicationAdapter {
     @Override
     public void render() {
         ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
+        game.update();
         uiStage.act();
         uiStage.draw();
     }

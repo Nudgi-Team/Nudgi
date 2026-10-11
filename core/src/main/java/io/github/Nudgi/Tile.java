@@ -7,6 +7,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Scaling;
 
 import java.util.ArrayList;
@@ -48,7 +49,7 @@ public class Tile {
         graphicsInit();
     }
 
-    
+
     private void graphicsInit() {
         clickListener = new OnClickListener(tileID);
         tileGraphics.addListener(clickListener);
@@ -122,6 +123,19 @@ public class Tile {
 
     public boolean hasPath(Direction dir) {
         return hasPath(dir.mask());
+    }
+
+    public int getPaths() {
+        return paths;
+    }
+
+    public void setPaths(int newPaths) {
+        if (newPaths == paths) return;
+        paths = newPaths;
+        rotation = 1; // same default a freshly built tile starts with
+        setSprite(Integer.bitCount(paths));
+        tileImage.setDrawable(new TextureRegionDrawable(new TextureRegion(sprite)));
+        tileImage.setRotation(rotation * 90);
     }
 
     public void setListener(IdentifyingListener listener) {

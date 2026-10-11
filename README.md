@@ -10,13 +10,13 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 - Cycle Intent: Players can join a game where they must race to the other corner of the board while shifting the board.
 
 
-## [General planning](https://docs.google.com/document/d/1OdQo34TRY2Hrxp1SSklVcMOJ-Jqr4Vcy3ZOWPZyE4w0/edit?tab=t.0 "Planning document")
+## [General planning (link)](https://docs.google.com/document/d/1OdQo34TRY2Hrxp1SSklVcMOJ-Jqr4Vcy3ZOWPZyE4w0/edit?tab=t.0 "Planning document")
 
-## [Current status report](https://docs.google.com/document/d/1Z5WFBWtPt5FA6oTMBvIoCHYWB1SKYJKe/edit "Current Status Report")
+## [Current status report (link)](https://docs.google.com/document/d/1Z5WFBWtPt5FA6oTMBvIoCHYWB1SKYJKe/edit "Current Status Report")
 - Past status reports:
     - [Cycle 1 Report #1](https://docs.google.com/document/d/10v7Pbj6k7JzzrXYRHgn1d2ci_lSR2HV-/edit#heading=h.sikzabrle87h "Cycle 1 Status Report 1")
 
-## Design Docs - [Template](https://docs.google.com/document/d/15QqPoigbQFneIwy-A7bhc5gTs5FZ6y1akalJa--ZtyA/edit?tab=t.0 "Design Doc Template (copy to use)")
+## Design Docs - [Template (link)](https://docs.google.com/document/d/15QqPoigbQFneIwy-A7bhc5gTs5FZ6y1akalJa--ZtyA/edit?tab=t.0 "Design Doc Template (copy to use)")
 
 ### Active
 
@@ -33,7 +33,7 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 - [Turn Management](https://docs.google.com/document/d/1NOCoOTdKG_9spo3uMet2lnwfgNiNHnXw6t-LcNTdTH8/edit?tab=t.0 "Turn Management")
 - [Board Objects](https://docs.google.com/document/d/1zg5x2khFJc299fgYcZNbo1OLq5wmPSmK8lM4O7iFAVQ/edit?tab=t.0 "Board Objects")
 
-## Meeting Summaries - [Template](https://docs.google.com/document/d/1YBH1sPN3Tn1IL58iR_LdvnfkF7CgVUHUkOxGYOes0Q4/edit?tab=t.0 "Meeting Summary Template (copy to use)")
+## Meeting Summaries - [Template (link)](https://docs.google.com/document/d/1YBH1sPN3Tn1IL58iR_LdvnfkF7CgVUHUkOxGYOes0Q4/edit?tab=t.0 "Meeting Summary Template (copy to use)")
 
 - 
 

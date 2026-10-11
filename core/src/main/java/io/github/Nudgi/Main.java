@@ -1,25 +1,41 @@
 package io.github.Nudgi;
 
 import com.badlogic.gdx.ApplicationAdapter;
+import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.viewport.FitViewport;
 
 /** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class Main extends ApplicationAdapter {
     private SpriteBatch batch;
     private Board board;
+    private GameManager manager;
+    private PlayerListener listener;
 
     @Override
     public void create() {
-        int marginSize = 20;
+        int marginSize = 42;
         batch = new SpriteBatch();
         Vector2 windowSize = new Vector2(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        float boardSize = Math.min(windowSize.x, windowSize.y) - marginSize*2;
-        board = new Board(new Vector2(windowSize.x/2-boardSize/2,windowSize.y/2-boardSize/2), boardSize, new Vector2(9,9));
+        float boardSize = Math.min(windowSize.x, windowSize.y) - marginSize * 2;
+        board = new Board(new Vector2(windowSize.x / 2 - boardSize / 2, windowSize.y / 2 - boardSize / 2), boardSize, new Vector2(9, 9));
+        manager = new GameManager(board);
+
+        OrthographicCamera camera = new OrthographicCamera();
+        camera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        camera.update();
+
+        FitViewport viewport = new FitViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), camera);
+        viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+        listener = new PlayerListener(viewport, manager);
+        Gdx.input.setInputProcessor(listener);
+
     }
 
     @Override

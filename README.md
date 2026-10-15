@@ -25,7 +25,7 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 - [Player Movement](https://docs.google.com/document/d/1xKP9NifVkKyYLq4-aHesP8PpuBHuFJWMUUbH6KvO2oY/edit?tab=t.0 "Player Movement")
 - [Board Shifting](https://docs.google.com/document/d/1OEnIwxenCAzS8PM1t6CFdrwAKfLscrAUecjFLZhto10/edit?tab=t.0 "Board Shifting")
 - [Networking](https://docs.google.com/document/d/17Nrr1fzNYtPUSSX8ve5Je1b2VpxK9WhOguunlntGuw4/edit?tab=t.0 "Networking")
-- [Win Condition](https://docs.google.com/document/d/15QqPoigbQFneIwy-A7bhc5gTs5FZ6y1akalJa--ZtyA/edit?tab=t.0 "Win Condition")
+- [Win Condition](https://docs.google.com/document/d/10vQhCBvmNac5hzISVDdFBYvCG_S7UgLJT743wtbF7Sg/edit?tab=t.0 "Win Condition")
 
 ### Completed
 

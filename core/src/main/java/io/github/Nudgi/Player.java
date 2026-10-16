@@ -52,4 +52,9 @@ public class Player {
     public void moveImage(Vector2 newWorldPos) {
         playerImage.setPosition(newWorldPos.x, newWorldPos.y);
     }
+
+    @Override 
+    public String toString() {
+        return "Player " + playerID;
+    }
 }

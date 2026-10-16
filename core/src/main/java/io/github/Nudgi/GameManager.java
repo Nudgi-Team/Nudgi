@@ -1,28 +1,47 @@
 package io.github.Nudgi;
 
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.ThreadLocalRandom;
 
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Disposable;
 
 public class GameManager implements Disposable {
+    private static final Map<Vector2, Vector2> BASE_MAPPINGS = new HashMap<>();
+    static {
+        BASE_MAPPINGS.put(Vector2.Zero, Vector2.One);
+        BASE_MAPPINGS.put(Vector2.One, Vector2.Zero);
+        BASE_MAPPINGS.put(Vector2.X, Vector2.Y);
+        BASE_MAPPINGS.put(Vector2.Y, Vector2.X);
+    }
+
+    private final float PLAYER_IMAGE_OFFSET;
+    private final Stage stage;
+    private final Board board;
+    private Map<Player, Vector2> winningPositions = new HashMap<>();
     private Player[] players = new Player[4];
     private Player selectedPlayer = null;
-    private Board board;
     private int currentMovement;
-    private final float playerOffsetFactor;
 
     public GameManager(Board board, Stage stage) {
         this.board = board;
-        playerOffsetFactor = board.getTileSize()/5;
-        Vector2[] cornerPositions = {
+        this.stage = stage;
+        PLAYER_IMAGE_OFFSET = board.getTileSize()/5;
+        Vector2[] basePos = {
             Vector2.Zero,
             Vector2.X,
             Vector2.Y,
@@ -30,24 +49,27 @@ public class GameManager implements Disposable {
         };
 
         for (int i = 0; i < players.length; i++) {
-            cornerPositions[i] = board.getGridSize()
-                .scl(cornerPositions[i])
-                .sub(cornerPositions[i]);
+            Vector2 boardCornerPos = board.getGridSize()
+                .scl(basePos[i])
+                .sub(basePos[i]);
 
-            Vector2 worldPos = board.toWorldPos(cornerPositions[i]);
+            Vector2 worldPos = board.toWorldPos(boardCornerPos);
             float tileSize = board.getTileSize();
             
-            players[i] = new Player(worldPos.x + playerOffsetFactor, worldPos.y + playerOffsetFactor, tileSize*0.9f, tileSize*0.9f, stage, i);
+            players[i] = new Player(worldPos.x + PLAYER_IMAGE_OFFSET, worldPos.y + PLAYER_IMAGE_OFFSET, tileSize*0.9f, tileSize*0.9f, stage, i);
             players[i].setListener(this::handlePlayerClick);
-            board.initializePlayer(players[i], cornerPositions[i]);
+            
+            Vector2 winMapping = BASE_MAPPINGS.get(basePos[i]);
+            winningPositions.put(players[i], winMapping.cpy().scl(board.getGridSize()).sub(winMapping));
+            board.initializePlayer(players[i], boardCornerPos);
         }
         board.setListenerAllTiles(this::handleTileClick);
         generateRandomMovement();
     }
 
-    public void draw(SpriteBatch batch) {
-        board.draw(batch);
-    }
+    // public void draw(SpriteBatch batch) {
+    //     board.draw(batch);
+    // }
 
     @Override 
     public void dispose() {
@@ -70,8 +92,8 @@ public class GameManager implements Disposable {
 
     private void handlePlayerClick(int playerID) {
         if (selectedPlayer == null || selectedPlayer.playerID != playerID) {
-            System.out.println("Player " + playerID + " selected");
             selectedPlayer = findPlayerByID(playerID);
+            System.out.println(selectedPlayer + " selected");
 
             Set<Vector2> visited = new HashSet<>();
             Stack<Vector2> explore = new Stack<>();
@@ -103,7 +125,7 @@ public class GameManager implements Disposable {
             System.out.println("Available movement: " + currentMovement);
         }
         else {
-            System.out.println("Player " + selectedPlayer.playerID + " stayed put!");
+            System.out.println(selectedPlayer + " stayed put!");
             resetTurnContext();
         }
     }
@@ -117,16 +139,58 @@ public class GameManager implements Disposable {
             }
             else {
                 System.out.println("Player " + selectedPlayer.playerID + " stayed put!");
-                resetTurnContext();
             }
+            resetTurnContext();
         }
+    }
+
+
+    private void generateWinScreen(Player winner) {
+        Skin skin = new Skin();
+        Texture background = new Texture("EmptyTile.png");
+        skin.add("MazeBackground", background);
+        
+        Label.LabelStyle lstyle = new Label.LabelStyle();
+        lstyle.font = new BitmapFont();
+        lstyle.fontColor = Color.WHITE;
+        
+        TextButton.TextButtonStyle tbStyle = new TextButton.TextButtonStyle();
+        tbStyle.font = new BitmapFont();
+        tbStyle.fontColor = Color.BLACK;
+        tbStyle.up = skin.getDrawable("MazeBackground");
+        
+        
+        Label winnerText = new Label(winner + " has won!", lstyle);
+        TextButton button = new TextButton("Exit", tbStyle);
+        Vector2 center = new Vector2(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        OnClickListener listener = new OnClickListener(0);
+
+        winnerText.setFontScale(2);
+        winnerText.setPosition(center.x/2 - winnerText.getWidth(), center.y/1.7f);
+        button.setTransform(true);
+        button.setScale(2);
+        button.setPosition(center.x/2 - button.getWidth(), center.y/2.5f);
+        button.addListener(listener);
+        listener.setListener(id -> Gdx.app.exit());
+
+        stage.clear();
+        stage.addActor(winnerText);
+        stage.addActor(button);
     }
 
     private void movePlayer(Player p, Vector2 newPos) {
         board.movePlayer(p, newPos);
-        p.moveImage(board.toWorldPos(newPos).add(playerOffsetFactor, playerOffsetFactor));
-        System.out.println("MOVED player id " + p.playerID + " to " + newPos);
-        resetTurnContext();
+        p.moveImage(board.toWorldPos(newPos).add(PLAYER_IMAGE_OFFSET, PLAYER_IMAGE_OFFSET));
+        System.out.println("MOVED " + p + "to " + newPos);
+        if (playerWon(p)) {
+            System.out.println(p + " wins!");
+            generateWinScreen(p);
+        }
+    }
+
+
+    private boolean playerWon(Player p) {
+        return board.getPlayerPosition(p).epsilonEquals(winningPositions.get(p));
     }
 
     private void resetTurnContext() {

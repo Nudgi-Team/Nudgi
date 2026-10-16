@@ -1,6 +1,5 @@
 package io.github.Nudgi;
 
-import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
@@ -18,7 +17,6 @@ public class OnClickListener extends ClickListener {
      * Then, use the {@code setListener} method to define what happens on a click.
      * Only one listener may be registered at a time for each {@link OnClickListener} instance.
      * @param id
-     * @see #bindToActor(Actor)
      * @see #setListener(IdentifyingListener)
      */
     public OnClickListener(int id) {

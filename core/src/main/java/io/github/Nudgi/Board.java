@@ -99,8 +99,8 @@ public class Board {
     }
 
     public Vector2 getPlayerPosition(Player p) {
-        Optional<TileInfo> container = search(info -> info.tile.containsPlayer(p));
-        return container.orElseThrow(IllegalArgumentException::new).pos;
+        return search(info -> info.tile.containsPlayer(p))
+            .orElseThrow(IllegalArgumentException::new).pos;
     }
 
     /**
@@ -120,16 +120,12 @@ public class Board {
     }
 
     public void setListenerAllTiles(IdentifyingListener listener) {
-        forEachTile((pos, tile) -> {
-            tile.setListener(listener);
-        });
+        forEachTile((pos, tile) -> tile.setListener(listener));
     } 
 
 
     public void clearHighlights() {
-        forEachTile((pos, tile) -> {
-            tile.setHighlighted(false);
-        });
+        forEachTile((pos, tile) -> tile.setHighlighted(false));
     }
 
     /**

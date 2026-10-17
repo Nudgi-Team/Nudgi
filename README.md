@@ -38,7 +38,11 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 
 ## Meeting Summaries - [Template (link)](https://docs.google.com/document/d/1YBH1sPN3Tn1IL58iR_LdvnfkF7CgVUHUkOxGYOes0Q4/edit?tab=t.0 "Meeting Summary Template (copy to use)")
 
-- [Meeting @ 10/15/2026 1:00 PM](https://docs.google.com/document/d/14CjCflrRq5OCCoJeo4khurM-eeYoP81xhpzwcROPf-M/edit?tab=t.0)
+- [Meeting @ 10/15/2026 1:00 PM](https://docs.google.com/document/d/14CjCflrRq5OCCoJeo4khurM-eeYoP81xhpzwcROPf-M/edit?tab=t.0 "Meeting Summary 10/15/2026")
+
+## Memorandums
+
+- [Cycle 1 Memo](https://docs.google.com/document/d/11X68KhohXunDtpZlt4ODHg8469bjzNLYae0Ar7IJ_Kc/edit?tab=t.0 "Cycle 1 Memo")
 
 ## LibGDX project information
 

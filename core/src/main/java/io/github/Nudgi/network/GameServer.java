@@ -14,6 +14,7 @@ public class GameServer {
     private final List<ClientHandler> clients = new CopyOnWriteArrayList<>();
     private final Map<Integer, Integer> lastTile = new LinkedHashMap<>();
     private final Object lock = new Object();
+    private final TurnManager turnManager;
     private ServerSocket serverSocket;
     private volatile boolean running;
 
@@ -23,6 +24,8 @@ public class GameServer {
         this.maxPlayers = maxPlayers;
         this.boardMessage = boardMessage;
         this.tileCount = tileCount; // Allows for dynamic board sizes in the future
+        this.turnManager = new TurnManager(lock, TurnManager.DEFAULT_TURN_MILLIS, this::connectedIds,
+            (id, ms) -> broadcast("TURN " + id + " " + ms));
     }
 
     public void start() throws IOException {
@@ -35,6 +38,7 @@ public class GameServer {
 
     public void stop() {
         running = false;
+        synchronized (lock) { turnManager.stop(); }
         try { if (serverSocket != null) serverSocket.close(); } catch (IOException ignored) {}
         for (ClientHandler c : clients) c.close();
     }
@@ -67,6 +71,12 @@ public class GameServer {
         return -1;
     }
 
+    private List<Integer> connectedIds() {
+        List<Integer> ids = new ArrayList<>();
+        for (ClientHandler c : clients) ids.add(c.id);
+        return ids;
+    }
+
     // This is the other side of the switch/case statement from GameManager, handles the "commands" for each client and sends to console for debugging
     // This is also where the Lock happens
     private void handleLine(ClientHandler from, String line) {
@@ -76,8 +86,10 @@ public class GameServer {
         try { tile = Integer.parseInt(p[1]); } catch (NumberFormatException e) { return; }
         if (tile < 1 || tile > tileCount) return;
         synchronized (lock) {
+            if (!turnManager.isCurrent(from.id)) return;
             lastTile.put(from.id, tile);
             broadcast("MOVED " + from.id + " " + tile);
+            turnManager.endTurn(from.id);
         }
     }
 
@@ -123,12 +135,16 @@ public class GameServer {
                     for (Map.Entry<Integer, Integer> e : lastTile.entrySet())
                         send("MOVED " + e.getKey() + " " + e.getValue());
                     clients.add(this);
+                    turnManager.refresh();
+                    String turn = turnManager.currentTurnMessage();
+                    if (turn != null) send(turn);
                 }
                 String line;
                 while ((line = in.readLine()) != null) handleLine(this, line);
             } catch (IOException ignored) {
             } finally {
                 clients.remove(this);
+                synchronized (lock) { turnManager.refresh(); }
                 close();
             }
         }

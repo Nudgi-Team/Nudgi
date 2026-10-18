@@ -36,6 +36,8 @@ public class GameManager implements Disposable {
     private volatile String hostInfo = "";
     private String shownStatus;
     private int myId = -1;
+    private int turnId = -1;
+    private long turnDeadline;
     private boolean typing;
     private final StringBuilder ipBuffer = new StringBuilder();
 
@@ -84,6 +86,10 @@ public class GameManager implements Disposable {
             else if (Gdx.input.isKeyJustPressed(Input.Keys.J)) startTyping();
         }
         String s = status;
+        if (networked() && turnId >= 0) {
+            long secs = Math.max(0, (turnDeadline - System.currentTimeMillis() + 999) / 1000);
+            s += myTurn() ? "  |  YOUR TURN (" + secs + "s)" : "  |  Player " + turnId + "'s turn (" + secs + "s)";
+        }
         if (!s.equals(shownStatus)) {
             shownStatus = s;
             Gdx.graphics.setTitle("Nudgi - " + s);
@@ -195,11 +201,16 @@ public class GameManager implements Disposable {
     private void onDisconnected() {
         client = null;
         myId = -1;
+        turnId = -1;
         if (!rejected) status = "Disconnected from host";
     }
 
     private boolean networked() {
         return client != null && myId >= 0;
+    }
+
+    private boolean myTurn() {
+        return networked() && turnId == myId;
     }
 
     // Throw it into a string and decode on the other side
@@ -232,6 +243,11 @@ public class GameManager implements Disposable {
                     applyMove(player, target.pos);
                     break;
                 }
+                case "TURN":
+                    turnId = Integer.parseInt(p[1]);
+                    turnDeadline = System.currentTimeMillis() + Long.parseLong(p[2]);
+                    if (selectedPlayer != null) resetTurnContext();
+                    break;
                 case "FULL":
                     rejected = true;
                     started = false;
@@ -257,7 +273,7 @@ public class GameManager implements Disposable {
     }
 
     void handlePlayerClick(int playerID) {
-        if (started && (!networked() || playerID != myId)) { return; }
+        if (started && (!networked() || playerID != myId || !myTurn())) { return; }
         if (selectedPlayer == null || selectedPlayer.playerID != playerID) {
             System.out.println("Player " + playerID + " selected");
             selectedPlayer = findPlayerByID(playerID);
@@ -298,7 +314,7 @@ public class GameManager implements Disposable {
     }
 
     void handleTileClick(int tileID) {
-        if (selectedPlayer == null) { return; }
+        if (selectedPlayer == null || (started && !myTurn())) { return; }
         Board.TileInfo target = board.fetchTile(tileID);
         if (target.tile.isHighlighted()) {
             if (!target.tile.containsPlayer(selectedPlayer)) {

@@ -1,0 +1,35 @@
+
+Test Suite:
+
+Test 1 - Not a winning square:
+    Action: Player moves to any non-winning square
+    Expected:
+        Player does not win
+        Game continues as normal
+
+Test 2 - Reaches wrong corner:
+    Action: Player reaches a non-winning corner
+    Expected:
+        Player does not win
+        Game continues as normal
+
+Test 3 - Winning:
+    Action: Player reaches its target square
+    Expected:
+        Game ends
+        Winning screen appears
+        Game no longer detects user input
+
+Test 4 - Win screen displays correct player:
+    Action: Player wins
+    Expected:
+        Win screen displays correct user id
+
+Test 5 - Back button pressed:
+    Action: Exit button on win screen is clicked:
+    Expected:
+        Game is fully closed
+
+
+Test Mode Implementation:
+    If game manager is set to test mode, it will allow user to move through wall. Tester will be able to move one square in any direction with no path finding.

@@ -37,7 +37,14 @@ public class GameManager implements Disposable {
     private Player selectedPlayer = null;
     private int currentMovement;
 
-    public GameManager(Board board, Stage stage) {
+    private boolean testMode = false;
+
+    public GameManager(Board board, Stage stage, boolean _testMode){
+        this(board, stage);
+        testMode = _testMode;
+    }
+
+    public GameManager(Board board, Stage stage){
         this.board = board;
         this.stage = stage;
         PLAYER_IMAGE_OFFSET = board.getTileSize()/5;
@@ -55,10 +62,10 @@ public class GameManager implements Disposable {
 
             Vector2 worldPos = board.toWorldPos(boardCornerPos);
             float tileSize = board.getTileSize();
-            
+
             players[i] = new Player(worldPos.x + PLAYER_IMAGE_OFFSET, worldPos.y + PLAYER_IMAGE_OFFSET, tileSize*0.9f, tileSize*0.9f, stage, i);
             players[i].setListener(this::handlePlayerClick);
-            
+
             Vector2 winMapping = BASE_MAPPINGS.get(basePos[i]);
             winningPositions.put(players[i], winMapping.cpy().scl(board.getGridSize()).sub(winMapping));
             board.initializePlayer(players[i], boardCornerPos);
@@ -71,7 +78,7 @@ public class GameManager implements Disposable {
     //     board.draw(batch);
     // }
 
-    @Override 
+    @Override
     public void dispose() {
         Player.dispose();
         players = null;
@@ -99,16 +106,16 @@ public class GameManager implements Disposable {
             Stack<Vector2> explore = new Stack<>();
             explore.add(board.getPlayerPosition(selectedPlayer));
             for (int i = 0; i <= currentMovement; i++) {
-                // Start the queue and thus first iteration with the player's own tile. 
+                // Start the queue and thus first iteration with the player's own tile.
                 // On each subsequent iteration, the queue will begin with all adjacent tiles found
                 // in the previous iteration, excluding tiles visited in prior iterations.
-                // All tiles visited will be marked, including the starting square. 
+                // All tiles visited will be marked, including the starting square.
                 // Each iteration uses up one movement, with the first iteration only marking the starting square.
                 Stack<Vector2> found = new Stack<>();
                 while (!explore.empty()) {
                     Vector2 pos = explore.pop();
                     visited.add(pos);
-                    List<Vector2> adjacent = board.getAdjacentPositions(pos, true);
+                    List<Vector2> adjacent = board.getAdjacentPositions(pos, !testMode);
                     for (Vector2 item: adjacent) {
                         if (!visited.contains(item)) {
                             found.add(item);
@@ -149,17 +156,17 @@ public class GameManager implements Disposable {
         Skin skin = new Skin();
         Texture background = new Texture("EmptyTile.png");
         skin.add("MazeBackground", background);
-        
+
         Label.LabelStyle lstyle = new Label.LabelStyle();
         lstyle.font = new BitmapFont();
         lstyle.fontColor = Color.WHITE;
-        
+
         TextButton.TextButtonStyle tbStyle = new TextButton.TextButtonStyle();
         tbStyle.font = new BitmapFont();
         tbStyle.fontColor = Color.BLACK;
         tbStyle.up = skin.getDrawable("MazeBackground");
-        
-        
+
+
         Label winnerText = new Label(winner + " has won!", lstyle);
         TextButton button = new TextButton("Exit", tbStyle);
         Vector2 center = new Vector2(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());

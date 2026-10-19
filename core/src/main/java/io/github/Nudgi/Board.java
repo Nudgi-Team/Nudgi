@@ -7,24 +7,16 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
-import com.badlogic.gdx.graphics.g2d.Batch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 
 public class Board {
+    private static final Texture arrowTexture = new Texture("Arrow.png");
+
     private Tile[][] tiles;
     private Vector2 position;
     private Vector2 gridSize;
     private float tileSize;
-    Texture arrowTexture = new Texture("Arrow.png");
-
-    public enum directions{
-        Up,
-        Down,
-        Left,
-        Right
-    }
 
     public Board(Vector2 _position, float _size, Vector2 _gridSize, Stage stage){
         gridSize = _gridSize;
@@ -62,11 +54,11 @@ public class Board {
         }
     }
 
-    public void shift(int index, directions direction) {
+    public void shift(int index, Direction direction) {
         Tile wrap;
 
         switch (direction) {
-            case Down:
+            case DOWN:
                 wrap = tiles[index][0];
                 for (int y = 1; y < gridSize.y; y++) {
                     tiles[index][y - 1] = tiles[index][y];
@@ -74,7 +66,7 @@ public class Board {
                 tiles[index][(int) (gridSize.y - 1)] = wrap;
                 break;
 
-            case Up:
+            case UP:
                 wrap = tiles[index][(int) (gridSize.y - 1)];
                 for (int y = (int) (gridSize.y - 2); y >= 0; y--) {
                     tiles[index][y + 1] = tiles[index][y];
@@ -82,7 +74,7 @@ public class Board {
                 tiles[index][0] = wrap;
                 break;
 
-            case Left:
+            case LEFT:
                 wrap = tiles[0][index];
                 for (int x = 1; x < gridSize.x; x++) {
                     tiles[x - 1][index] = tiles[x][index];
@@ -90,7 +82,7 @@ public class Board {
                 tiles[(int) (gridSize.x - 1)][index] = wrap;
                 break;
 
-            case Right:
+            case RIGHT:
                 wrap = tiles[(int) (gridSize.x - 1)][index];
                 for (int x = (int) (gridSize.x - 2); x >= 0; x--) {
                     tiles[x + 1][index] = tiles[x][index];
@@ -247,31 +239,31 @@ public class Board {
     }
 
 
-    public void draw(Batch batch){
-        for(int x = 0; x < gridSize.x; x++){
-            for(int y = 0; y < gridSize.y; y++){
-                Vector2 p = new Vector2(x * tileSize + position.x, y * tileSize + position.y);
-                tiles[x][y].draw(batch, p, tileSize);
-            }
-        }
+    // public void draw(Batch batch){
+    //     for(int x = 0; x < gridSize.x; x++){
+    //         for(int y = 0; y < gridSize.y; y++){
+    //             Vector2 p = new Vector2(x * tileSize + position.x, y * tileSize + position.y);
+    //             tiles[x][y].draw(batch, p, tileSize);
+    //         }
+    //     }
 
-        for(int x = 1; x < gridSize.x-1; x++) {
-            batch.draw(new TextureRegion(arrowTexture), x *tileSize + position.x, position.y - tileSize,
-                tileSize / 2, tileSize / 2, tileSize, tileSize,
-                1, 1, 0);
-            batch.draw(new TextureRegion(arrowTexture), x *tileSize + position.x, position.y + (gridSize.y) * tileSize,
-                tileSize / 2, tileSize / 2, tileSize, tileSize,
-                1, 1, 180);
-        }
-        for(int y = 1; y < gridSize.x-1; y++) {
-            batch.draw(new TextureRegion(arrowTexture), position.x - tileSize, y *tileSize + position.y,
-                tileSize / 2, tileSize / 2, tileSize, tileSize,
-                1, 1, 270);
-            batch.draw(new TextureRegion(arrowTexture), position.x + (gridSize.x) * tileSize, y *tileSize + position.y,
-                tileSize / 2, tileSize / 2, tileSize, tileSize,
-                1, 1, 90);
-        }
-    }
+    //     for(int x = 1; x < gridSize.x-1; x++) {
+    //         batch.draw(new TextureRegion(arrowTexture), x *tileSize + position.x, position.y - tileSize,
+    //             tileSize / 2, tileSize / 2, tileSize, tileSize,
+    //             1, 1, 0);
+    //         batch.draw(new TextureRegion(arrowTexture), x *tileSize + position.x, position.y + (gridSize.y) * tileSize,
+    //             tileSize / 2, tileSize / 2, tileSize, tileSize,
+    //             1, 1, 180);
+    //     }
+    //     for(int y = 1; y < gridSize.x-1; y++) {
+    //         batch.draw(new TextureRegion(arrowTexture), position.x - tileSize, y *tileSize + position.y,
+    //             tileSize / 2, tileSize / 2, tileSize, tileSize,
+    //             1, 1, 270);
+    //         batch.draw(new TextureRegion(arrowTexture), position.x + (gridSize.x) * tileSize, y *tileSize + position.y,
+    //             tileSize / 2, tileSize / 2, tileSize, tileSize,
+    //             1, 1, 90);
+    //     }
+    // }
 
 
     public Vector2 toGrid(Vector2 worldPos) {

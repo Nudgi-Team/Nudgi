@@ -10,7 +10,6 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.ThreadLocalRandom;
 
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 
 public class GameManager implements Disposable {
@@ -46,9 +45,9 @@ public class GameManager implements Disposable {
         generateRandomMovement();
     }
 
-    public void draw(SpriteBatch batch) {
-        board.draw(batch);
-    }
+    // public void draw(SpriteBatch batch) {
+    //     board.draw(batch);
+    // }
 
     @Override 
     public void dispose() {
@@ -78,22 +77,22 @@ public class GameManager implements Disposable {
 
         if (gridPos.x == -1){
             if(gridPos.y > 0 && gridPos.y < gridSize.y - 1){
-                board.shift((int) gridPos.y, Board.directions.Right);
+                board.shift((int) gridPos.y, Direction.RIGHT);
             }
         }
         else if (gridPos.x == gridSize.x){
             if(gridPos.y > 0 && gridPos.y < gridSize.y - 1){
-                board.shift((int) gridPos.y, Board.directions.Left);
+                board.shift((int) gridPos.y, Direction.LEFT);
             }
         }
         else if (gridPos.y == -1){
             if(gridPos.x > 0 && gridPos.x < gridSize.x - 1){
-                board.shift((int) gridPos.x, Board.directions.Up);
+                board.shift((int) gridPos.x, Direction.UP);
             }
         }
         else if (gridPos.y == gridSize.y){
             if(gridPos.x > 0 && gridPos.x < gridSize.x - 1){
-                board.shift((int) gridPos.x, Board.directions.Down);
+                board.shift((int) gridPos.x, Direction.DOWN);
             }
         }
     }

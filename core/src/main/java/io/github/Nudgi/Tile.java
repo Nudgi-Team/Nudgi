@@ -17,9 +17,9 @@ public class Tile {
 
     private static final Texture highlight = new Texture("highlight.png");
 
-    Texture sprite = new Texture("EmptyTile.png");
-    int paths = 0;
-    int rotation = 1;
+    private Texture sprite = new Texture("EmptyTile.png");
+    private int paths = 0;
+    private int rotation = 1;
     private final Image highlightedImage = new Image(highlight);
     private final Image tileImage;
     private final Stack tileGraphics;
@@ -75,7 +75,6 @@ public class Tile {
     private void setSprite(int pathAmount){
         int NORTH = 1, EAST = 2, SOUTH = 4, WEST = 8;
         switch(pathAmount){
-            case 0: sprite = new Texture("EmptyTile.png");break; // No Rotations
             case 2:
                 if(hasPath(NORTH) && hasPath(SOUTH) || hasPath(EAST) && hasPath(WEST)){
                     sprite = new Texture("StraightTile.png");
@@ -98,6 +97,7 @@ public class Tile {
                 }
                 break;
             case 4: sprite = new Texture("FourWayTile.png");break;
+            default: break;
         }
     }
 

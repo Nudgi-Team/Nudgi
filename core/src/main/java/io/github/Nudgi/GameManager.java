@@ -2,11 +2,8 @@ package io.github.Nudgi;
 
 
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 import java.util.concurrent.ThreadLocalRandom;
 
 import com.badlogic.gdx.Gdx;
@@ -97,33 +94,41 @@ public class GameManager implements Disposable {
         throw new IllegalArgumentException("Failed to find player with id " + id);
     }
 
+    public void handlePlayerClick(Vector2 pos) {
+        Vector2 gridPos = board.toGrid(pos);
+
+        System.out.println(pos);
+        System.out.println(gridPos);
+        Vector2 gridSize = board.getGridSize();
+
+        if (gridPos.x == -1){
+            if(gridPos.y > 0 && gridPos.y < gridSize.y - 1){
+                board.shift((int) gridPos.y, Direction.RIGHT);
+            }
+        }
+        else if (gridPos.x == gridSize.x){
+            if(gridPos.y > 0 && gridPos.y < gridSize.y - 1){
+                board.shift((int) gridPos.y, Direction.LEFT);
+            }
+        }
+        else if (gridPos.y == -1){
+            if(gridPos.x > 0 && gridPos.x < gridSize.x - 1){
+                board.shift((int) gridPos.x, Direction.UP);
+            }
+        }
+        else if (gridPos.y == gridSize.y){
+            if(gridPos.x > 0 && gridPos.x < gridSize.x - 1){
+                board.shift((int) gridPos.x, Direction.DOWN);
+            }
+        }
+    }
+
     private void handlePlayerClick(int playerID) {
         if (selectedPlayer == null || selectedPlayer.playerID != playerID) {
             selectedPlayer = findPlayerByID(playerID);
             System.out.println(selectedPlayer + " selected");
 
-            Set<Vector2> visited = new HashSet<>();
-            Stack<Vector2> explore = new Stack<>();
-            explore.add(board.getPlayerPosition(selectedPlayer));
-            for (int i = 0; i <= currentMovement; i++) {
-                // Start the queue and thus first iteration with the player's own tile.
-                // On each subsequent iteration, the queue will begin with all adjacent tiles found
-                // in the previous iteration, excluding tiles visited in prior iterations.
-                // All tiles visited will be marked, including the starting square.
-                // Each iteration uses up one movement, with the first iteration only marking the starting square.
-                Stack<Vector2> found = new Stack<>();
-                while (!explore.empty()) {
-                    Vector2 pos = explore.pop();
-                    visited.add(pos);
-                    List<Vector2> adjacent = board.getAdjacentPositions(pos, !testMode);
-                    for (Vector2 item: adjacent) {
-                        if (!visited.contains(item)) {
-                            found.add(item);
-                        }
-                    }
-                }
-                explore.addAll(found);
-            }
+            Set<Vector2> visited = board.pathFind(board.getPlayerPosition(selectedPlayer), currentMovement);
             System.out.println("Targets:");
             for (Vector2 moveEligible: visited) {
                 System.out.println(moveEligible);

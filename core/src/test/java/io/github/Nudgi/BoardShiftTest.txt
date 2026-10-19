@@ -1,0 +1,14 @@
+Test 1: Ensure that shift properly shifts the board:
+For each direction, for each row (or column), that row or column must shift in that direction by exactly one tile.
+On each iteration, the edge tile that falls off should become the edge tile on the other side.
+The tiles, other than their position, should remain unaffected.
+
+Test 2: Input management:
+- The board should shift if and only if a click outside the edges of the board is detected.
+In other words, 
+- if the board shifts, it must have been in response to such a click.
+AND
+- if that click is detected, the board must shift.
+
+Test 3: Constraints:
+- It should not be possible to shift any of the corner tiles, in any direction.

@@ -36,7 +36,7 @@ public class GameManager implements Disposable {
 
             Vector2 worldPos = board.toWorldPos(cornerPositions[i]);
             float tileSize = board.getTileSize();
-            
+
             players[i] = new Player(worldPos.x + playerOffsetFactor, worldPos.y + playerOffsetFactor, tileSize*0.9f, tileSize*0.9f, stage, i);
             players[i].setListener(this::handlePlayerClick);
             board.initializePlayer(players[i], cornerPositions[i]);
@@ -49,7 +49,7 @@ public class GameManager implements Disposable {
     //     board.draw(batch);
     // }
 
-    @Override 
+    @Override
     public void dispose() {
         Player.dispose();
         players = null;
@@ -102,28 +102,7 @@ public class GameManager implements Disposable {
             System.out.println("Player " + playerID + " selected");
             selectedPlayer = findPlayerByID(playerID);
 
-            Set<Vector2> visited = new HashSet<>();
-            Stack<Vector2> explore = new Stack<>();
-            explore.add(board.getPlayerPosition(selectedPlayer));
-            for (int i = 0; i <= currentMovement; i++) {
-                // Start the queue and thus first iteration with the player's own tile. 
-                // On each subsequent iteration, the queue will begin with all adjacent tiles found
-                // in the previous iteration, excluding tiles visited in prior iterations.
-                // All tiles visited will be marked, including the starting square. 
-                // Each iteration uses up one movement, with the first iteration only marking the starting square.
-                Stack<Vector2> found = new Stack<>();
-                while (!explore.empty()) {
-                    Vector2 pos = explore.pop();
-                    visited.add(pos);
-                    List<Vector2> adjacent = board.getAdjacentPositions(pos, true);
-                    for (Vector2 item: adjacent) {
-                        if (!visited.contains(item)) {
-                            found.add(item);
-                        }
-                    }
-                }
-                explore.addAll(found);
-            }
+            Set<Vector2> visited = board.pathFind(board.getPlayerPosition(selectedPlayer), currentMovement);
             System.out.println("Targets:");
             for (Vector2 moveEligible: visited) {
                 System.out.println(moveEligible);

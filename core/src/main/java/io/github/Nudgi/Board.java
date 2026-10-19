@@ -1,12 +1,10 @@
 package io.github.Nudgi;
 
-import com.badlogic.gdx.graphics.Texture;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 
@@ -96,12 +94,12 @@ public class Board {
     private boolean blockedByWall(Vector2 pos1, Vector2 pos2, Direction from1to2) {
         Tile tile1 = fetchTile(pos1);
         Tile tile2 = fetchTile(pos2);
-        
+
         return (!tile1.hasPath(from1to2) || !tile2.hasPath(from1to2.inverse()));
     }
 
     /**
-     * 
+     *
      * @param fromPosition the starting position.
      * @param onlyNonBlocked if true, only returns positions not blocked by a wall.
      * @return the array of adjacent tiles.
@@ -129,7 +127,7 @@ public class Board {
 
     /**
      * Converts a position on the board grid to a world position for rendering.
-     * @param gridPos 
+     * @param gridPos
      * @return the world position equivalent of the argument.
      */
     public Vector2 toWorldPos(Vector2 gridPos) {
@@ -152,7 +150,7 @@ public class Board {
     public void movePlayer(Player p, Vector2 newLocation) {
         Tile startingTile = fetchTile(getPlayerPosition(p));
         Tile endingTile = fetchTile(newLocation);
-    
+
         startingTile.removePlayer(p);
         endingTile.addPlayer(p);
     }
@@ -161,7 +159,7 @@ public class Board {
         forEachTile((pos, tile) -> {
             tile.setListener(listener);
         });
-    } 
+    }
 
 
     public void clearHighlights() {
@@ -183,7 +181,7 @@ public class Board {
     public Vector2 getPosition() {
         return new Vector2(position);
     }
-    
+
     public float getTileSize() {
         return tileSize;
     }
@@ -195,7 +193,7 @@ public class Board {
 
     public Tile fetchTile(Vector2 pos) {
         return tiles[(int)pos.x][(int)pos.y];
-    } 
+    }
 
 
     public TileInfo fetchTile(int id) {
@@ -238,6 +236,31 @@ public class Board {
         }
     }
 
+    public Set<Vector2> pathFind(Vector2 startingSquare, int distance) {
+        Set<Vector2> visited = new HashSet<>();
+        Stack<Vector2> explore = new Stack<>();
+        explore.add(startingSquare);
+        for (int i = 0; i <= distance; i++) {
+            // Start the queue and thus first iteration with the player's own tile.
+            // On each subsequent iteration, the queue will begin with all adjacent tiles found
+            // in the previous iteration, excluding tiles visited in prior iterations.
+            // All tiles visited will be marked, including the starting square.
+            // Each iteration uses up one movement, with the first iteration only marking the starting square.
+            Stack<Vector2> found = new Stack<>();
+            while (!explore.empty()) {
+                Vector2 pos = explore.pop();
+                visited.add(pos);
+                List<Vector2> adjacent = getAdjacentPositions(pos, true);
+                for (Vector2 item : adjacent) {
+                    if (!visited.contains(item)) {
+                        found.add(item);
+                    }
+                }
+            }
+            explore.addAll(found);
+        }
+        return visited;
+    }
 
     // public void draw(Batch batch){
     //     for(int x = 0; x < gridSize.x; x++){

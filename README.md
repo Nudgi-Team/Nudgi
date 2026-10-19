@@ -7,7 +7,7 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 ## Development cycle information
 
 - Current cycle: 2
-- Cycle Intent: Players can join a game where they must race to the other corner of the board while shifting the board.
+- Cycle Intent: Players can join a game where they must race to the other corner of the board while shifting the board. (To be updated)
 
 ## [Cycle Presentation (link)](https://docs.google.com/presentation/d/1hyAWfxods5hodeF6vvC9RdubzZMBYmKhqUuFE6TPMXo/edit?slide=id.h28d4c742b04a9950_0_40#slide=id.h28d4c742b04a9950_0_40 "Cycle Presentation")
 

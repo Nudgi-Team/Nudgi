@@ -15,7 +15,6 @@ public class Main extends ApplicationAdapter {
     private SpriteBatch batch;
     private Board board;
     private GameManager manager;
-    private PlayerListener listener;
 
     @Override
     public void create() {
@@ -32,10 +31,6 @@ public class Main extends ApplicationAdapter {
 
         FitViewport viewport = new FitViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), camera);
         viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-
-        listener = new PlayerListener(viewport, manager);
-        Gdx.input.setInputProcessor(listener);
-
     }
 
     @Override

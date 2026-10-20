@@ -5,7 +5,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 
 import io.github.Nudgi.Direction;
 
-public class ShiftArrow extends ClickableEntity<ShiftArrow.ShiftID, Image> {
+public class ShiftArrow extends Entity<ShiftArrow.ShiftID, Image> {
     private static final Texture arrowTexture = new Texture("Arrow.png");
 
     public ShiftArrow(int index, Direction dir) {
@@ -14,7 +14,8 @@ public class ShiftArrow extends ClickableEntity<ShiftArrow.ShiftID, Image> {
 
     @Override 
     public String toString() {
-        return "Shift arrow with " + getID().toString();
+        return "Shift arrow with " + getID().toString()
+        + "\nBelonging to entity " + super.toString();
     }
 
     public static class ShiftID {

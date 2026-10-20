@@ -15,8 +15,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Disposable;
 
-import io.github.Nudgi.entities.ClickableEntity;
 import io.github.Nudgi.entities.Player;
+import io.github.Nudgi.entities.TrivialEntity;
 
 public class GameManager implements Disposable {
     private static final Map<Vector2, Vector2> BASE_MAPPINGS = new HashMap<>();
@@ -67,7 +67,6 @@ public class GameManager implements Disposable {
 
     @Override
     public void dispose() {
-        Player.dispose();
         players = null;
     }
 
@@ -122,7 +121,7 @@ public class GameManager implements Disposable {
         Texture background = new Texture("EmptyTile.png");
         Label winnerText = UIService.createLabel(winner + " has won!");
         TextButton baseButton = UIService.createTextButton("Exit", background, null, null);
-        ClickableEntity<Void, TextButton> button = new ClickableEntity<Void,TextButton>(baseButton, null) {};
+        new TrivialEntity<>(baseButton, _void -> Gdx.app.exit());
         Vector2 topRight = new Vector2(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         winnerText.setFontScale(2);
@@ -132,7 +131,6 @@ public class GameManager implements Disposable {
         baseButton.setScale(3);
         baseButton.setPosition(topRight.x/2 - baseButton.getWidth()*1.5f, topRight.y/2.5f - baseButton.getHeight());      
         UIService.modifyTextButtonStyle(baseButton, style -> style.fontColor = Color.BLACK);  
-        button.addListener(_void -> Gdx.app.exit());
 
         stage.clear();
         stage.addActor(winnerText);

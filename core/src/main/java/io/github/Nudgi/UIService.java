@@ -88,7 +88,7 @@ public final class UIService {
      * @param background
      * @return the new Label.
      */
-    public static Label createLabel(@Null String message, Texture background) {
+    public static Label createLabel(@Null String message, @Null Texture background) {
         Label label = createLabel(message);
         modifyLabelStyle(label, style -> style.background = drawableFromTexture(background));
         return label;

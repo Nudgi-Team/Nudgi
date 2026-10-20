@@ -10,7 +10,7 @@ import io.github.Nudgi.Direction;
 import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class Tile extends ClickableEntity<Integer, Stack> {
+public class Tile extends Entity<Integer, Stack> {
     public final int tileID;
 
     private static final Texture highlight = new Texture("highlight.png");

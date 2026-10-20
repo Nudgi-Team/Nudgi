@@ -2,7 +2,7 @@ package io.github.Nudgi.entities;
 
 /**
  * A simplified listener for use with events requiring the identity of the caller object.
- * @see ClickableEntity
+ * @see Entity
  */
 @FunctionalInterface 
 public interface IdentifyingListener<T> {

@@ -5,7 +5,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 
-public class Player extends ClickableEntity<Integer, Image> {
+public class Player extends Entity<Integer, Image> {
     private static final Texture playerTexture = new Texture("Player.png");
     private Image playerImage;
 
@@ -32,10 +32,6 @@ public class Player extends ClickableEntity<Integer, Image> {
 
         stage.addActor(playerImage);
         this.playerID = playerID;
-    }
-    
-    public static void dispose() {
-        playerTexture.dispose();
     }
     
     public void moveImage(Vector2 newWorldPos) {

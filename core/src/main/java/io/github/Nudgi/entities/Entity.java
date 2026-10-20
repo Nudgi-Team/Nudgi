@@ -3,32 +3,41 @@ package io.github.Nudgi.entities;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.Align;
 
 
 /**
  * Abstract class containing methods faciliating
- * responses to clicks detected on the given Actor. Responses are added via IdentifyingListeners,
+ * responses to clicks detected on the given Actor, as well as resizing operations.
+ * Responses are added via IdentifyingListeners,
  * which allow for the identification of the entity that was clicked.
- * @param <T> identifier type
+ * <p>
+ * @param <T> identifier type, or {@link Void} for entities without identifiers
  * @param <A> actor type
  */
-public abstract class ClickableEntity<T, A extends Actor> {
+public abstract class Entity<T, A extends Actor> {
     private final List<IdentifyingListener<T>> listeners = new ArrayList<>();
     private A actor;
     private T id;
     private boolean paused;
 
-    protected ClickableEntity(A actor, T id) {
+    protected Entity(A actor, T id) {
         this.actor = actor;
         this.id = id;
         actor.addListener(new ClickDetector());
     }
 
-    protected ClickableEntity(A actor, T id, List<IdentifyingListener<T>> listeners) {
+    protected Entity(A actor, T id, IdentifyingListener<T> listener) {
+        this(actor, id);
+        addListener(listener);
+    }
+
+    protected Entity(A actor, T id, List<IdentifyingListener<T>> listeners) {
         this(actor, id);
         addListeners(listeners);
     }
@@ -51,6 +60,7 @@ public abstract class ClickableEntity<T, A extends Actor> {
 
     public void clearListeners() {
         listeners.clear();
+        actor.setPosition(2, 3, Align.center);
     }
 
     public void addToStage(Stage stage) {
@@ -69,6 +79,31 @@ public abstract class ClickableEntity<T, A extends Actor> {
 
     public boolean isPaused() {
         return paused;
+    }
+
+    public Vector2 getPosition() {
+        return new Vector2(actor.getX(), actor.getY());
+    }
+
+    public Vector2 getOrigin() {
+        return new Vector2(actor.getOriginX(), actor.getOriginY());
+    }
+
+    public Vector2 getScale() {
+        return new Vector2(actor.getScaleX(), actor.getScaleY());
+    }
+
+    public Vector2 getSize() {
+        return new Vector2(actor.getWidth(), actor.getHeight());
+    }
+    
+    @Override 
+    public String toString() {
+        return String.format("ACTOR %s with ID %s:\n", actor.toString(), id.toString())
+            + String.format("position: %s\n", getPosition())
+            + String.format("origin: %s\n", getOrigin())
+            + String.format("scale: %s", getScale())
+            + String.format("size: %s", getSize());
     }
 
     private class ClickDetector extends ClickListener {

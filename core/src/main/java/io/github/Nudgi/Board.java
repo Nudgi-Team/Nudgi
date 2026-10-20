@@ -91,6 +91,7 @@ public class Board {
             for (int i = 0; i < bounds; i++) {
                 arr[i] = new ShiftArrow(i+1, dir);
                 arr[i].addListener(this::shift);
+                
                 Vector2 worldPos = toWorldPos(getArrowGridPos(arr[i]));
                 Image arrowImage = arr[i].getActor();
                 arrowImage.setPosition(worldPos.x, worldPos.y);
@@ -108,6 +109,7 @@ public class Board {
     }
 
     public void shift(int index, Direction direction) {
+        System.out.println("Shifted on index " + index + " " + direction);
         Tile wrap;
 
         switch (direction) {
@@ -312,32 +314,6 @@ public class Board {
         }
         return visited;
     }
-
-    // public void draw(Batch batch){
-    //     for(int x = 0; x < gridSize.x; x++){
-    //         for(int y = 0; y < gridSize.y; y++){
-    //             Vector2 p = new Vector2(x * tileSize + position.x, y * tileSize + position.y);
-    //             tiles[x][y].draw(batch, p, tileSize);
-    //         }
-    //     }
-
-    //     for(int x = 1; x < gridSize.x-1; x++) {
-    //         batch.draw(new TextureRegion(arrowTexture), x *tileSize + position.x, position.y - tileSize,
-    //             tileSize / 2, tileSize / 2, tileSize, tileSize,
-    //             1, 1, 0);
-    //         batch.draw(new TextureRegion(arrowTexture), x *tileSize + position.x, position.y + (gridSize.y) * tileSize,
-    //             tileSize / 2, tileSize / 2, tileSize, tileSize,
-    //             1, 1, 180);
-    //     }
-    //     for(int y = 1; y < gridSize.x-1; y++) {
-    //         batch.draw(new TextureRegion(arrowTexture), position.x - tileSize, y *tileSize + position.y,
-    //             tileSize / 2, tileSize / 2, tileSize, tileSize,
-    //             1, 1, 270);
-    //         batch.draw(new TextureRegion(arrowTexture), position.x + (gridSize.x) * tileSize, y *tileSize + position.y,
-    //             tileSize / 2, tileSize / 2, tileSize, tileSize,
-    //             1, 1, 90);
-    //     }
-    // }
 
 
     public Vector2 toGrid(Vector2 worldPos) {

@@ -64,7 +64,7 @@ public class Board {
 
     private Vector2 getArrowGridPos(ShiftArrow arrow) {
         ShiftID id = arrow.getID();
-        Direction dir = id.dir;
+        Direction dir = id.dir.inverse(); // "LEFT" arrows appear on the right, and so on.
         int index = id.index;
 
         Vector2 pos = dir.vector();
@@ -78,12 +78,11 @@ public class Board {
             pos.add(0, index);
         }
         
-        System.out.println(pos + " generated for " + arrow);
         return pos;
     }
 
     private void generateArrows(Stage stage) {
-        // Based on the direction that the arrow is located on the board (opposite the way it faces).
+        // Based on the direction that the arrow is facing.
         for (Direction dir: Direction.values()) {
             int bounds = getArrowBounds(dir);
             ShiftArrow[] arr = new ShiftArrow[bounds];
@@ -97,7 +96,7 @@ public class Board {
                 arrowImage.setPosition(worldPos.x, worldPos.y);
                 arrowImage.setSize(tileSize, tileSize);
                 arrowImage.setOrigin(tileSize/2, tileSize/2);
-                arrowImage.setRotation(dir.inverse().degrees());
+                arrowImage.setRotation(dir.degrees());
                 stage.addActor(arrowImage);
             }
             arrows.put(dir, arr);
@@ -108,6 +107,15 @@ public class Board {
         shift(id.index, id.dir);
     }
 
+    private void moveTile(Tile usingTileAt, int toX, int toY) {
+        tiles[toX][toY] = usingTileAt;
+        tiles[toX][toY].setPosition(toWorldPos(toX, toY));
+    }
+
+    private void moveTile(int fromX, int fromY, int toX, int toY) {
+        moveTile(tiles[fromX][fromY], toX, toY);
+    }
+
     public void shift(int index, Direction direction) {
         System.out.println("Shifted on index " + index + " " + direction);
         Tile wrap;
@@ -116,33 +124,33 @@ public class Board {
             case DOWN:
                 wrap = tiles[index][0];
                 for (int y = 1; y < gridSize.y; y++) {
-                    tiles[index][y - 1] = tiles[index][y];
+                    moveTile(index, y, index, y-1);
                 }
-                tiles[index][(int) (gridSize.y - 1)] = wrap;
+                moveTile(wrap, index, (int)gridSize.y - 1);
                 break;
 
             case UP:
                 wrap = tiles[index][(int) (gridSize.y - 1)];
                 for (int y = (int) (gridSize.y - 2); y >= 0; y--) {
-                    tiles[index][y + 1] = tiles[index][y];
+                    moveTile(index, y, index, y+1);
                 }
-                tiles[index][0] = wrap;
+                moveTile(wrap, index, 0);
                 break;
 
             case LEFT:
                 wrap = tiles[0][index];
                 for (int x = 1; x < gridSize.x; x++) {
-                    tiles[x - 1][index] = tiles[x][index];
+                    moveTile(x, index, x-1, index);
                 }
-                tiles[(int) (gridSize.x - 1)][index] = wrap;
+                moveTile(wrap, (int)gridSize.x - 1, index);
                 break;
 
             case RIGHT:
                 wrap = tiles[(int) (gridSize.x - 1)][index];
                 for (int x = (int) (gridSize.x - 2); x >= 0; x--) {
-                    tiles[x + 1][index] = tiles[x][index];
+                    moveTile(x, index, x+1, index);
                 }
-                tiles[0][index] = wrap;
+                moveTile(wrap, 0, index);
                 break;
         }
     }
@@ -189,6 +197,10 @@ public class Board {
      */
     public Vector2 toWorldPos(Vector2 gridPos) {
         return gridPos.cpy().scl(tileSize).add(position);
+    }
+
+    public Vector2 toWorldPos(float x, float y) {
+        return toWorldPos(new Vector2(x, y));
     }
 
     public Vector2 getPlayerPosition(Player p) {
@@ -274,7 +286,6 @@ public class Board {
         }
         return Optional.empty();
     }
-
 
     /**
      * Iterates through every tile, passing in both its position and the {@code Tile} itself

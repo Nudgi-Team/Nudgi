@@ -10,7 +10,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
  * @param <A> actor type
  * @see Entity
  */
-public final class TrivialEntity<A extends Actor> extends Entity<Void, A> {
+public class TrivialEntity<A extends Actor> extends Entity<Void, A> {
     public TrivialEntity(A actor) {
         super(actor, null);
     }

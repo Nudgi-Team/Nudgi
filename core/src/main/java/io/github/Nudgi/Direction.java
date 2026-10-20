@@ -31,6 +31,9 @@ public enum Direction {
         return degrees;
     }
 
+    /**
+     * Equivalent to {@code rotated(2)}.
+     */
     public Direction inverse() {
         return rotated(2);
     }

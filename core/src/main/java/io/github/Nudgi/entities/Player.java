@@ -7,12 +7,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 
 public class Player extends Entity<Integer, Image> {
     private static final Texture playerTexture = new Texture("Player.png");
-    private Image playerImage;
-
-    /**
-     * A unique identifier for the Player.
-     */
-    public final int playerID;
+    private static Vector2 imageOffset = Vector2.Zero.cpy();
 
     /**
      * Constructs a new player with its own {@link Image}.
@@ -25,21 +20,25 @@ public class Player extends Entity<Integer, Image> {
      */
     public Player(float x, float y, float width, float height, Stage stage, int playerID) {   
         super(new Image(playerTexture), playerID);     
-        playerImage = getActor();
-        playerImage.setPosition(x, y);
+        Image playerImage = getActor();
+        setPosition(new Vector2(x, y));
         playerImage.setWidth(width);
         playerImage.setHeight(height);
 
         stage.addActor(playerImage);
-        this.playerID = playerID;
     }
-    
-    public void moveImage(Vector2 newWorldPos) {
-        playerImage.setPosition(newWorldPos.x, newWorldPos.y);
+
+    public static void setPositionOffset(Vector2 offset) {
+        imageOffset = offset;
+    }
+
+    @Override 
+    public void setPosition(Vector2 v) {
+        super.setPosition(v.add(imageOffset));
     }
 
     @Override 
     public String toString() {
-        return "Player " + playerID;
+        return "Player " + getID();
     }
 }

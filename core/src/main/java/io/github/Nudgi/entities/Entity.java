@@ -85,6 +85,10 @@ public abstract class Entity<T, A extends Actor> {
         return new Vector2(actor.getX(), actor.getY());
     }
 
+    public void setPosition(Vector2 v) {
+        actor.setPosition(v.x, v.y);
+    }
+
     public Vector2 getOrigin() {
         return new Vector2(actor.getOriginX(), actor.getOriginY());
     }

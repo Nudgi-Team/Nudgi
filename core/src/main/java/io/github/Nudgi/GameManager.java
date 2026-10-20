@@ -27,7 +27,6 @@ public class GameManager implements Disposable {
         BASE_MAPPINGS.put(Vector2.Y, Vector2.X);
     }
 
-    private final float PLAYER_IMAGE_OFFSET;
     private final Stage stage;
     private final Board board;
     private Map<Player, Vector2> winningPositions = new HashMap<>();
@@ -38,7 +37,7 @@ public class GameManager implements Disposable {
     public GameManager(Board board, Stage stage){
         this.board = board;
         this.stage = stage;
-        PLAYER_IMAGE_OFFSET = board.getTileSize()/5;
+        float PLAYER_IMAGE_OFFSET = board.getTileSize()/5;
         Vector2[] basePos = {
             Vector2.Zero,
             Vector2.X,
@@ -53,8 +52,8 @@ public class GameManager implements Disposable {
 
             Vector2 worldPos = board.toWorldPos(boardCornerPos);
             float tileSize = board.getTileSize();
-
-            players[i] = new Player(worldPos.x + PLAYER_IMAGE_OFFSET, worldPos.y + PLAYER_IMAGE_OFFSET, tileSize*0.9f, tileSize*0.9f, stage, i+1);
+            Player.setPositionOffset(new Vector2(PLAYER_IMAGE_OFFSET, PLAYER_IMAGE_OFFSET));
+            players[i] = new Player(worldPos.x, worldPos.y, tileSize*0.9f, tileSize*0.9f, stage, i+1);
             players[i].addListener(this::handlePlayerClick);
 
             Vector2 winMapping = BASE_MAPPINGS.get(basePos[i]);
@@ -76,7 +75,7 @@ public class GameManager implements Disposable {
 
     private Player findPlayerByID(int id) {
         for (Player p: players) {
-            if (id == p.playerID) {
+            if (p.getID().equals(id)) {
                 return p;
             }
         }
@@ -96,9 +95,14 @@ public class GameManager implements Disposable {
             }
             System.out.println("Available movement: " + currentMovement);
         }
-        else if (selectedPlayer.playerID == playerID) {
+        else if (selectedPlayer.getID().equals(playerID)) {
             System.out.println(selectedPlayer + " stayed put!");
             resetTurnContext();
+        }
+        else {
+            Player other = findPlayerByID(playerID);
+            Vector2 otherPos = board.getPlayerPosition(other);
+            handleTileClick(board.fetchTile(otherPos).getID());
         }
     }
 
@@ -110,7 +114,7 @@ public class GameManager implements Disposable {
                 movePlayer(selectedPlayer, target.pos);
             }
             else {
-                System.out.println("Player " + selectedPlayer.playerID + " stayed put!");
+                System.out.println(selectedPlayer + " stayed put!");
             }
             resetTurnContext();
         }
@@ -139,7 +143,7 @@ public class GameManager implements Disposable {
 
     private void movePlayer(Player p, Vector2 newPos) {
         board.movePlayer(p, newPos);
-        p.moveImage(board.toWorldPos(newPos).add(PLAYER_IMAGE_OFFSET, PLAYER_IMAGE_OFFSET));
+        p.setPosition(board.toWorldPos(newPos));
         System.out.println("MOVED " + p + "to " + newPos);
         if (playerWon(p)) {
             System.out.println(p + " wins!");

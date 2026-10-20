@@ -1,6 +1,7 @@
 package io.github.Nudgi.entities;
 
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.utils.Scaling;
@@ -156,6 +157,18 @@ public class Tile extends Entity<Integer, Stack> {
         tileGraphics.setWidth(width);
         tileGraphics.setHeight(height);
         tileImage.setOrigin(width/2, height/2);
+    }
+
+    /**    
+     * Moves both this tile and all other entities on it.
+     * @param to
+     */
+    @Override 
+    public void setPosition(Vector2 to) {
+        super.setPosition(to);
+        for (Player player: players) {
+            player.setPosition(to);
+        }
     }
 
 

@@ -4,21 +4,22 @@ import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 
 import io.github.Nudgi.entities.IdentifyingListener;
 import io.github.Nudgi.entities.Player;
+import io.github.Nudgi.entities.ShiftArrow;
 import io.github.Nudgi.entities.Tile;
+import io.github.Nudgi.entities.ShiftArrow.ShiftID;
 
 public class Board {
-    private static final Texture arrowTexture = new Texture("Arrow.png");
-
     private Tile[][] tiles;
     private Vector2 position;
     private Vector2 gridSize;
     private float tileSize;
+    private Map<Direction, ShiftArrow[]> arrows = new EnumMap<>(Direction.class);
 
     public Board(Vector2 _position, float _size, Vector2 _gridSize, Stage stage){
         gridSize = _gridSize;
@@ -33,6 +34,7 @@ public class Board {
             _position.y + (_size - boardHeight) / 2f
         );
         generateBoard(gridSize);
+        generateArrows(stage);
         forEachTile((pos, target) -> {
             Vector2 worldPos = toWorldPos(pos);
             target.setGraphics(worldPos.x, worldPos.y, tileSize, tileSize);
@@ -54,6 +56,55 @@ public class Board {
                 tiles[x][y] = new Tile(id);
             }
         }
+    }
+
+    private int getArrowBounds(Direction dir) {
+        return (int)(dir.isVertical() ? gridSize.x - 2 : gridSize.y - 2);
+    }
+
+    private Vector2 getArrowGridPos(ShiftArrow arrow) {
+        ShiftID id = arrow.getID();
+        Direction dir = id.dir;
+        int index = id.index;
+
+        Vector2 pos = dir.vector();
+        if (pos.x > 0 || pos.y > 0) {
+            pos.scl(dir.isVertical() ? gridSize.y : gridSize.x);
+        }
+        if (dir.isVertical()) {
+            pos.add(index, 0);
+        }
+        else {
+            pos.add(0, index);
+        }
+        
+        System.out.println(pos + " generated for " + arrow);
+        return pos;
+    }
+
+    private void generateArrows(Stage stage) {
+        // Based on the direction that the arrow is located on the board (opposite the way it faces).
+        for (Direction dir: Direction.values()) {
+            int bounds = getArrowBounds(dir);
+            ShiftArrow[] arr = new ShiftArrow[bounds];
+
+            for (int i = 0; i < bounds; i++) {
+                arr[i] = new ShiftArrow(i+1, dir);
+                arr[i].addListener(this::shift);
+                Vector2 worldPos = toWorldPos(getArrowGridPos(arr[i]));
+                Image arrowImage = arr[i].getActor();
+                arrowImage.setPosition(worldPos.x, worldPos.y);
+                arrowImage.setSize(tileSize, tileSize);
+                arrowImage.setOrigin(tileSize/2, tileSize/2);
+                arrowImage.setRotation(dir.inverse().degrees());
+                stage.addActor(arrowImage);
+            }
+            arrows.put(dir, arr);
+        }
+    }
+
+    public void shift(ShiftID id) {
+        shift(id.index, id.dir);
     }
 
     public void shift(int index, Direction direction) {

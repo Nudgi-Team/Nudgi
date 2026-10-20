@@ -1,10 +1,6 @@
 package io.github.Nudgi.entities;
 
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Batch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.utils.Scaling;
@@ -31,6 +27,7 @@ public class Tile extends ClickableEntity<Integer, Stack> {
         super(new Stack(), tileID);
         tileGraphics = getActor();
         this.tileID = tileID;
+
         int NORTH = 1, EAST = 2, SOUTH = 4, WEST = 8;
         paths |= north ? NORTH:0;
         paths |= east ? EAST:0;
@@ -162,20 +159,6 @@ public class Tile extends ClickableEntity<Integer, Stack> {
     }
 
 
-    /**
-     * Adds this tile's graphical actor to the provided Stage.
-     * @param stage
-     */
-    public void addToStage(Stage stage) {
-        stage.addActor(tileGraphics);
-    }
-
-
-    public void draw(Batch batch, Vector2 position, float tileSize){
-        // batch.draw(new TextureRegion(sprite), position.x, position.y, tileSize/2, tileSize/2, tileSize, tileSize, 1,1,rotation * 90);
-        // batch.draw(highlightedImage, position.x, position.y, tileSize, tileSize);
-    }
-
     private class TileImage extends Image {
         public TileImage(Texture t) {
             super(t);
@@ -184,6 +167,11 @@ public class Tile extends ClickableEntity<Integer, Stack> {
         @Override 
         protected void sizeChanged() {
             tileGraphics.setSize(this.getWidth(), this.getHeight());
+        }
+
+        @Override
+        protected void scaleChanged() {
+            tileGraphics.setScale(this.getScaleX(), this.getScaleY());
         }
     }
 }

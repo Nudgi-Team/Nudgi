@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -53,7 +54,7 @@ public class GameManager implements Disposable {
             Vector2 worldPos = board.toWorldPos(boardCornerPos);
             float tileSize = board.getTileSize();
 
-            players[i] = new Player(worldPos.x + PLAYER_IMAGE_OFFSET, worldPos.y + PLAYER_IMAGE_OFFSET, tileSize*0.9f, tileSize*0.9f, stage, i);
+            players[i] = new Player(worldPos.x + PLAYER_IMAGE_OFFSET, worldPos.y + PLAYER_IMAGE_OFFSET, tileSize*0.9f, tileSize*0.9f, stage, i+1);
             players[i].addListener(this::handlePlayerClick);
 
             Vector2 winMapping = BASE_MAPPINGS.get(basePos[i]);
@@ -83,37 +84,8 @@ public class GameManager implements Disposable {
         throw new IllegalArgumentException("Failed to find player with id " + id);
     }
 
-    public void handlePlayerClick(Vector2 pos) {
-        Vector2 gridPos = board.toGrid(pos);
-
-        System.out.println(pos);
-        System.out.println(gridPos);
-        Vector2 gridSize = board.getGridSize();
-
-        if (gridPos.x == -1){
-            if(gridPos.y > 0 && gridPos.y < gridSize.y - 1){
-                board.shift((int) gridPos.y, Direction.RIGHT);
-            }
-        }
-        else if (gridPos.x == gridSize.x){
-            if(gridPos.y > 0 && gridPos.y < gridSize.y - 1){
-                board.shift((int) gridPos.y, Direction.LEFT);
-            }
-        }
-        else if (gridPos.y == -1){
-            if(gridPos.x > 0 && gridPos.x < gridSize.x - 1){
-                board.shift((int) gridPos.x, Direction.UP);
-            }
-        }
-        else if (gridPos.y == gridSize.y){
-            if(gridPos.x > 0 && gridPos.x < gridSize.x - 1){
-                board.shift((int) gridPos.x, Direction.DOWN);
-            }
-        }
-    }
-
     private void handlePlayerClick(int playerID) {
-        if (selectedPlayer == null || selectedPlayer.playerID != playerID) {
+        if (selectedPlayer == null) {
             selectedPlayer = findPlayerByID(playerID);
             System.out.println(selectedPlayer + " selected");
 
@@ -125,7 +97,7 @@ public class GameManager implements Disposable {
             }
             System.out.println("Available movement: " + currentMovement);
         }
-        else {
+        else if (selectedPlayer.playerID == playerID) {
             System.out.println(selectedPlayer + " stayed put!");
             resetTurnContext();
         }
@@ -158,7 +130,8 @@ public class GameManager implements Disposable {
 
         baseButton.setTransform(true);
         baseButton.setScale(3);
-        baseButton.setPosition(topRight.x/2 - baseButton.getWidth()*1.5f, topRight.y/2.5f - baseButton.getHeight());
+        baseButton.setPosition(topRight.x/2 - baseButton.getWidth()*1.5f, topRight.y/2.5f - baseButton.getHeight());      
+        UIService.modifyTextButtonStyle(baseButton, style -> style.fontColor = Color.BLACK);  
         button.addListener(_void -> Gdx.app.exit());
 
         stage.clear();

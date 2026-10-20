@@ -19,15 +19,6 @@ public enum Direction {
         this.degrees = degrees;
     }
 
-    private Direction fromDeg(int deg) {
-        for (Direction dir: Direction.values()) {
-            if (deg == dir.degrees) {
-                return dir;
-            }
-        }
-        throw new AssertionError("Failed to find Direction from degree " + deg);
-    }
-
     public Vector2 vector() {
         return dirValue.cpy();
     }
@@ -36,16 +27,17 @@ public enum Direction {
         return mask;
     }
 
-
     public int degrees() {
         return degrees;
     }
-
 
     public Direction inverse() {
         return rotated(2);
     }
 
+    public boolean isVertical() {
+        return this == Direction.UP || this == Direction.DOWN;
+    }
 
     /**
      * Rotates a direction 90 degrees counter-clockwise n times.
@@ -53,7 +45,17 @@ public enum Direction {
      * @return the rotated Direction.
      */
     public Direction rotated(int n) {
-        int target = (degrees + (n*90)) % 360;
-        return fromDeg(target);  
+        n %= Direction.values().length;
+        
+        Direction value = this;
+        for (int i = 0; i < n; i++) {
+            switch(value) {
+                case UP: value = LEFT; break;
+                case LEFT: value = DOWN; break;
+                case DOWN: value = RIGHT; break;
+                case RIGHT: value = UP; break;
+            }
+        }
+        return value;
     }   
 }

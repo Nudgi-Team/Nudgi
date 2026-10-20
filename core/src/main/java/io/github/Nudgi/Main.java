@@ -14,7 +14,7 @@ public class Main extends ApplicationAdapter {
 
     @Override
     public void create() {
-        int marginSize = 20;
+        int marginSize = 42;
         Vector2 windowSize = new Vector2(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         float boardSize = Math.min(windowSize.x, windowSize.y) - marginSize*2;
 

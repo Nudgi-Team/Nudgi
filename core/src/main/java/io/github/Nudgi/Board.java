@@ -8,6 +8,10 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 
+import io.github.Nudgi.entities.IdentifyingListener;
+import io.github.Nudgi.entities.Player;
+import io.github.Nudgi.entities.Tile;
+
 public class Board {
     private static final Texture arrowTexture = new Texture("Arrow.png");
 

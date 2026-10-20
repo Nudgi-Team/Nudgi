@@ -14,6 +14,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Disposable;
 
+import io.github.Nudgi.entities.ClickableEntity;
+import io.github.Nudgi.entities.Player;
+
 public class GameManager implements Disposable {
     private static final Map<Vector2, Vector2> BASE_MAPPINGS = new HashMap<>();
     static {

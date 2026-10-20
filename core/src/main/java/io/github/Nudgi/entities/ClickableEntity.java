@@ -1,4 +1,4 @@
-package io.github.Nudgi;
+package io.github.Nudgi.entities;
 
 import java.util.ArrayList;
 import java.util.List;

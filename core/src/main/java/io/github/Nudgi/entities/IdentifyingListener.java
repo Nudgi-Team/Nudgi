@@ -1,8 +1,8 @@
-package io.github.Nudgi;
+package io.github.Nudgi.entities;
 
 /**
  * A simplified listener for use with events requiring the identity of the caller object.
- * @see OnClickListener
+ * @see ClickableEntity
  */
 @FunctionalInterface 
 public interface IdentifyingListener<T> {

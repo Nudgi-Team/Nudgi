@@ -1,4 +1,4 @@
-package io.github.Nudgi;
+package io.github.Nudgi.entities;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
@@ -8,6 +8,8 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.utils.Scaling;
+
+import io.github.Nudgi.Direction;
 
 import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;

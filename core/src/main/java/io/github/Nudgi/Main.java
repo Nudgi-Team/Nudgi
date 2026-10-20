@@ -1,13 +1,10 @@
 package io.github.Nudgi;
 
 import com.badlogic.gdx.ApplicationAdapter;
-import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.utils.viewport.FitViewport;
 
 /** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class Main extends ApplicationAdapter {
@@ -23,7 +20,7 @@ public class Main extends ApplicationAdapter {
 
         uiStage = new Stage();
         board = new Board(new Vector2(windowSize.x/2-boardSize/2,windowSize.y/2-boardSize/2), boardSize, new Vector2(9,9), uiStage);
-        game = new GameManager(board, uiStage, true);
+        game = new GameManager(board, uiStage);
         Gdx.input.setInputProcessor(uiStage);
     }
 

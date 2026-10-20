@@ -7,13 +7,10 @@ import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Disposable;
 
@@ -33,13 +30,6 @@ public class GameManager implements Disposable {
     private Player[] players = new Player[4];
     private Player selectedPlayer = null;
     private int currentMovement;
-
-    private boolean testMode = false;
-
-    public GameManager(Board board, Stage stage, boolean _testMode){
-        this(board, stage);
-        testMode = _testMode;
-    }
 
     public GameManager(Board board, Stage stage){
         this.board = board;
@@ -61,7 +51,7 @@ public class GameManager implements Disposable {
             float tileSize = board.getTileSize();
 
             players[i] = new Player(worldPos.x + PLAYER_IMAGE_OFFSET, worldPos.y + PLAYER_IMAGE_OFFSET, tileSize*0.9f, tileSize*0.9f, stage, i);
-            players[i].setListener(this::handlePlayerClick);
+            players[i].addListener(this::handlePlayerClick);
 
             Vector2 winMapping = BASE_MAPPINGS.get(basePos[i]);
             winningPositions.put(players[i], winMapping.cpy().scl(board.getGridSize()).sub(winMapping));
@@ -70,10 +60,6 @@ public class GameManager implements Disposable {
         board.setListenerAllTiles(this::handleTileClick);
         generateRandomMovement();
     }
-
-    // public void draw(SpriteBatch batch) {
-    //     board.draw(batch);
-    // }
 
     @Override
     public void dispose() {
@@ -158,36 +144,23 @@ public class GameManager implements Disposable {
 
 
     private void generateWinScreen(Player winner) {
-        Skin skin = new Skin();
         Texture background = new Texture("EmptyTile.png");
-        skin.add("MazeBackground", background);
-
-        Label.LabelStyle lstyle = new Label.LabelStyle();
-        lstyle.font = new BitmapFont();
-        lstyle.fontColor = Color.WHITE;
-
-        TextButton.TextButtonStyle tbStyle = new TextButton.TextButtonStyle();
-        tbStyle.font = new BitmapFont();
-        tbStyle.fontColor = Color.BLACK;
-        tbStyle.up = skin.getDrawable("MazeBackground");
-
-
-        Label winnerText = new Label(winner + " has won!", lstyle);
-        TextButton button = new TextButton("Exit", tbStyle);
-        Vector2 center = new Vector2(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        OnClickListener listener = new OnClickListener(0);
+        Label winnerText = UIService.createLabel(winner + " has won!");
+        TextButton baseButton = UIService.createTextButton("Exit", background, null, null);
+        ClickableEntity<Void, TextButton> button = new ClickableEntity<Void,TextButton>(baseButton, null) {};
+        Vector2 topRight = new Vector2(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         winnerText.setFontScale(2);
-        winnerText.setPosition(center.x/2 - winnerText.getWidth(), center.y/1.7f);
-        button.setTransform(true);
-        button.setScale(2);
-        button.setPosition(center.x/2 - button.getWidth(), center.y/2.5f);
-        button.addListener(listener);
-        listener.setListener(id -> Gdx.app.exit());
+        winnerText.setPosition(topRight.x/2 - winnerText.getWidth(), topRight.y/1.7f);
+
+        baseButton.setTransform(true);
+        baseButton.setScale(3);
+        baseButton.setPosition(topRight.x/2 - baseButton.getWidth()*1.5f, topRight.y/2.5f - baseButton.getHeight());
+        button.addListener(_void -> Gdx.app.exit());
 
         stage.clear();
         stage.addActor(winnerText);
-        stage.addActor(button);
+        stage.addActor(baseButton);
     }
 
     private void movePlayer(Player p, Vector2 newPos) {

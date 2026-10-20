@@ -5,6 +5,6 @@ package io.github.Nudgi;
  * @see OnClickListener
  */
 @FunctionalInterface 
-public interface IdentifyingListener {
-    public void onClick(int triggeringID);
+public interface IdentifyingListener<T> {
+    public void onClick(T triggeringID);
 }

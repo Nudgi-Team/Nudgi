@@ -155,8 +155,8 @@ public class Board {
         endingTile.addPlayer(p);
     }
 
-    public void setListenerAllTiles(IdentifyingListener listener) {
-        forEachTile((pos, tile) -> tile.setListener(listener));
+    public void setListenerAllTiles(IdentifyingListener<Integer> listener) {
+        forEachTile((pos, tile) -> tile.addListener(listener));
     } 
 
 

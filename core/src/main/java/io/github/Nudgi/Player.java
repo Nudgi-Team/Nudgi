@@ -5,10 +5,9 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 
-public class Player {
+public class Player extends ClickableEntity<Integer, Image> {
     private static final Texture playerTexture = new Texture("Player.png");
     private Image playerImage;
-    private final OnClickListener clickListener;
 
     /**
      * A unique identifier for the Player.
@@ -24,30 +23,20 @@ public class Player {
      * @param stage the {@link Stage} to place the Image onto.
      * @param playerID a unique identifier for this instance.
      */
-    public Player(float x, float y, float width, float height, Stage stage, int playerID) {        
-        playerImage = new Image(playerTexture);
+    public Player(float x, float y, float width, float height, Stage stage, int playerID) {   
+        super(new Image(playerTexture), playerID);     
+        playerImage = getActor();
         playerImage.setPosition(x, y);
         playerImage.setWidth(width);
         playerImage.setHeight(height);
 
         stage.addActor(playerImage);
         this.playerID = playerID;
-        this.clickListener = new OnClickListener(playerID);
-        playerImage.addListener(clickListener);
     }
     
     public static void dispose() {
         playerTexture.dispose();
     }
-
-    /**
-     * Sets the {@code listener} to this instance, invoked each time the player is clicked.
-     * @param listener the {@link IdentifyingListener listener} to bind to this instance.
-     */
-    public void setListener(IdentifyingListener listener) {
-        this.clickListener.setListener(listener);
-    }
-
     
     public void moveImage(Vector2 newWorldPos) {
         playerImage.setPosition(newWorldPos.x, newWorldPos.y);

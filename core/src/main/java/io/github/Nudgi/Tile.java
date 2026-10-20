@@ -12,7 +12,7 @@ import com.badlogic.gdx.utils.Scaling;
 import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class Tile {
+public class Tile extends ClickableEntity<Integer, Stack> {
     public final int tileID;
 
     private static final Texture highlight = new Texture("highlight.png");
@@ -21,12 +21,13 @@ public class Tile {
     private int paths = 0;
     private int rotation = 1;
     private final Image highlightedImage = new Image(highlight);
-    private final Image tileImage;
+    private final TileImage tileImage;
     private final Stack tileGraphics;
     private ArrayList<Player> players = new ArrayList<>();
-    private OnClickListener clickListener;
 
     public Tile(boolean north, boolean south, boolean east, boolean west, int tileID){
+        super(new Stack(), tileID);
+        tileGraphics = getActor();
         this.tileID = tileID;
         int NORTH = 1, EAST = 2, SOUTH = 4, WEST = 8;
         paths |= north ? NORTH:0;
@@ -35,23 +36,23 @@ public class Tile {
         paths |= west ? WEST:0;
 
         setSprite(Integer.bitCount(paths));
-        tileImage = new Image(sprite);
-        tileGraphics = new Stack(tileImage, highlightedImage);
+        tileImage = new TileImage(sprite);
         graphicsInit();
     }
 
     public Tile(int tileID){
+        super(new Stack(), tileID);
         this.tileID = tileID;
+        tileGraphics = getActor();
         generatePaths();
-        tileImage = new Image(sprite);
-        tileGraphics = new Stack(tileImage, highlightedImage);
+        tileImage = new TileImage(sprite);
         graphicsInit();
     }
 
     
     private void graphicsInit() {
-        clickListener = new OnClickListener(tileID);
-        tileGraphics.addListener(clickListener);
+        tileGraphics.add(tileImage);
+        tileGraphics.add(highlightedImage);
         tileImage.setRotation(rotation*90);
         tileImage.setScaling(Scaling.stretch);
         highlightedImage.setScaling(Scaling.stretch);
@@ -124,10 +125,6 @@ public class Tile {
         return hasPath(dir.mask());
     }
 
-    public void setListener(IdentifyingListener listener) {
-        clickListener.setListener(listener);
-    }
-
     public ArrayList<Player> getPlayersOnTile() {
         return new ArrayList<>(players);
     }
@@ -175,5 +172,16 @@ public class Tile {
     public void draw(Batch batch, Vector2 position, float tileSize){
         // batch.draw(new TextureRegion(sprite), position.x, position.y, tileSize/2, tileSize/2, tileSize, tileSize, 1,1,rotation * 90);
         // batch.draw(highlightedImage, position.x, position.y, tileSize, tileSize);
+    }
+
+    private class TileImage extends Image {
+        public TileImage(Texture t) {
+            super(t);
+        }
+
+        @Override 
+        protected void sizeChanged() {
+            tileGraphics.setSize(this.getWidth(), this.getHeight());
+        }
     }
 }

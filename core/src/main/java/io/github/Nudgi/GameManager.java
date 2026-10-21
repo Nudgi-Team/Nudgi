@@ -14,6 +14,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Disposable;
+import com.badlogic.gdx.utils.viewport.Viewport;
 
 import io.github.Nudgi.entities.Player;
 import io.github.Nudgi.entities.TrivialEntity;
@@ -125,8 +126,9 @@ public class GameManager implements Disposable {
         Texture background = new Texture("EmptyTile.png");
         Label winnerText = UIService.createLabel(winner + " has won!");
         TextButton baseButton = UIService.createTextButton("Exit", background, null, null);
+        Viewport view = stage.getViewport();
+        Vector2 topRight = new Vector2(view.getWorldWidth(), view.getWorldHeight());
         new TrivialEntity<>(baseButton, _void -> Gdx.app.exit());
-        Vector2 topRight = new Vector2(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         winnerText.setFontScale(2);
         winnerText.setPosition(topRight.x/2 - winnerText.getWidth(), topRight.y/1.7f);

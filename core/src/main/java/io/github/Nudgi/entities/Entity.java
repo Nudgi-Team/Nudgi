@@ -6,9 +6,7 @@ import java.util.List;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
-import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.utils.Align;
 
 
 /**
@@ -60,11 +58,6 @@ public abstract class Entity<T, A extends Actor> {
 
     public void clearListeners() {
         listeners.clear();
-        actor.setPosition(2, 3, Align.center);
-    }
-
-    public void addToStage(Stage stage) {
-        stage.addActor(actor);
     }
 
     /**

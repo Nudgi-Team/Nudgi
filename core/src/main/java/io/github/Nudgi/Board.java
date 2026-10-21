@@ -38,7 +38,7 @@ public class Board {
         forEachTile((pos, target) -> {
             Vector2 worldPos = toWorldPos(pos);
             target.setGraphics(worldPos.x, worldPos.y, tileSize, tileSize);
-            target.addToStage(stage);
+            stage.addActor(target.getActor());
         });
     }
 

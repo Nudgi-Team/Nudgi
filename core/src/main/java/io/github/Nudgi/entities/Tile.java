@@ -1,34 +1,35 @@
-package io.github.Nudgi;
+package io.github.Nudgi.entities;
 
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Batch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
-import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Scaling;
+
+import io.github.Nudgi.Direction;
+import io.github.Nudgi.UIService;
 
 import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class Tile {
+public class Tile extends Entity<Integer, Stack> {
     public final int tileID;
 
     private static final Texture highlight = new Texture("highlight.png");
 
-    Texture sprite = new Texture("EmptyTile.png");
-    int paths = 0;
-    int rotation = 1;
+    private Texture sprite = new Texture("EmptyTile.png");
+    private int paths = 0;
+    private int rotation = 1;
     private final Image highlightedImage = new Image(highlight);
-    private final Image tileImage;
+    private final TileImage tileImage;
     private final Stack tileGraphics;
     private ArrayList<Player> players = new ArrayList<>();
-    private OnClickListener clickListener;
 
     public Tile(boolean north, boolean south, boolean east, boolean west, int tileID){
+        super(new Stack(), tileID);
+        tileGraphics = getActor();
         this.tileID = tileID;
+
         int NORTH = 1, EAST = 2, SOUTH = 4, WEST = 8;
         paths |= north ? NORTH:0;
         paths |= east ? EAST:0;
@@ -36,23 +37,23 @@ public class Tile {
         paths |= west ? WEST:0;
 
         setSprite(Integer.bitCount(paths));
-        tileImage = new Image(sprite);
-        tileGraphics = new Stack(tileImage, highlightedImage);
+        tileImage = new TileImage(sprite);
         graphicsInit();
     }
 
     public Tile(int tileID){
+        super(new Stack(), tileID);
         this.tileID = tileID;
+        tileGraphics = getActor();
         generatePaths();
-        tileImage = new Image(sprite);
-        tileGraphics = new Stack(tileImage, highlightedImage);
+        tileImage = new TileImage(sprite);
         graphicsInit();
     }
 
 
     private void graphicsInit() {
-        clickListener = new OnClickListener(tileID);
-        tileGraphics.addListener(clickListener);
+        tileGraphics.add(tileImage);
+        tileGraphics.add(highlightedImage);
         tileImage.setRotation(rotation*90);
         tileImage.setScaling(Scaling.stretch);
         highlightedImage.setScaling(Scaling.stretch);
@@ -76,7 +77,6 @@ public class Tile {
     private void setSprite(int pathAmount){
         int NORTH = 1, EAST = 2, SOUTH = 4, WEST = 8;
         switch(pathAmount){
-            case 0: sprite = new Texture("EmptyTile.png");break; // No Rotations
             case 2:
                 if(hasPath(NORTH) && hasPath(SOUTH) || hasPath(EAST) && hasPath(WEST)){
                     sprite = new Texture("StraightTile.png");
@@ -99,6 +99,7 @@ public class Tile {
                 }
                 break;
             case 4: sprite = new Texture("FourWayTile.png");break;
+            default: break;
         }
     }
 
@@ -134,12 +135,8 @@ public class Tile {
         paths = newPaths;
         rotation = 1; // same default a freshly built tile starts with
         setSprite(Integer.bitCount(paths));
-        tileImage.setDrawable(new TextureRegionDrawable(new TextureRegion(sprite)));
+        tileImage.setDrawable(UIService.drawableFromTexture(sprite));
         tileImage.setRotation(rotation * 90);
-    }
-
-    public void setListener(IdentifyingListener listener) {
-        clickListener.setListener(listener);
     }
 
     public ArrayList<Player> getPlayersOnTile() {
@@ -176,18 +173,32 @@ public class Tile {
         tileImage.setOrigin(width/2, height/2);
     }
 
-
-    /**
-     * Adds this tile's graphical actor to the provided Stage.
-     * @param stage
+    /**    
+     * Moves both this tile and all other entities on it.
+     * @param to
      */
-    public void addToStage(Stage stage) {
-        stage.addActor(tileGraphics);
+    @Override 
+    public void setPosition(Vector2 to) {
+        super.setPosition(to);
+        for (Player player: players) {
+            player.setPosition(to);
+        }
     }
 
 
-    public void draw(Batch batch, Vector2 position, float tileSize){
-        // batch.draw(new TextureRegion(sprite), position.x, position.y, tileSize/2, tileSize/2, tileSize, tileSize, 1,1,rotation * 90);
-        // batch.draw(highlightedImage, position.x, position.y, tileSize, tileSize);
+    private class TileImage extends Image {
+        public TileImage(Texture t) {
+            super(t);
+        }
+
+        @Override 
+        protected void sizeChanged() {
+            tileGraphics.setSize(this.getWidth(), this.getHeight());
+        }
+
+        @Override
+        protected void scaleChanged() {
+            tileGraphics.setScale(this.getScaleX(), this.getScaleY());
+        }
     }
 }

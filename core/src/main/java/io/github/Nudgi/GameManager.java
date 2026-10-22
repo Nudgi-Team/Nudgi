@@ -2,31 +2,45 @@ package io.github.Nudgi;
 
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Disposable;
+import com.badlogic.gdx.utils.viewport.Viewport;
 
+import io.github.Nudgi.entities.Player;
+import io.github.Nudgi.entities.TrivialEntity;
 import io.github.Nudgi.network.GameClient;
 import io.github.Nudgi.network.GameServer;
 
 public class GameManager implements Disposable {
+    private static final Map<Vector2, Vector2> BASE_MAPPINGS = new HashMap<>();
+    static {
+        BASE_MAPPINGS.put(Vector2.Zero, Vector2.One);
+        BASE_MAPPINGS.put(Vector2.One, Vector2.Zero);
+        BASE_MAPPINGS.put(Vector2.X, Vector2.Y);
+        BASE_MAPPINGS.put(Vector2.Y, Vector2.X);
+    }
+
+    private final Stage stage;
+    private final Board board;
+    private Map<Player, Vector2> winningPositions = new HashMap<>();
     private Player[] players = new Player[4];
     private Player selectedPlayer = null;
-    private Board board;
     private int currentMovement;
-    private final float playerOffsetFactor;
     private final Consumer<Runnable> mainThread;   // runs something on the render thread
     private volatile GameServer server;
     private volatile GameClient client;
@@ -46,12 +60,14 @@ public class GameManager implements Disposable {
     public GameManager(Board board, Stage stage, Consumer<Runnable> mainThread) {
         this.mainThread = mainThread;
         this.board = board;
+        this.stage = stage;
         stage.addListener(new InputListener() {
             @Override public boolean keyTyped(InputEvent event, char c) { return handleTypedChar(c); }
             @Override public boolean keyDown(InputEvent event, int keycode) { return handleKeyDown(keycode); }
         });
-        playerOffsetFactor = board.getTileSize()/5;
-        Vector2[] cornerPositions = {
+
+        float PLAYER_IMAGE_OFFSET = board.getTileSize()/5;
+        Vector2[] basePos = {
             Vector2.Zero,
             Vector2.X,
             Vector2.Y,
@@ -59,23 +75,22 @@ public class GameManager implements Disposable {
         };
 
         for (int i = 0; i < players.length; i++) {
-            cornerPositions[i] = board.getGridSize()
-                .scl(cornerPositions[i])
-                .sub(cornerPositions[i]);
+            Vector2 boardCornerPos = board.getGridSize()
+                .scl(basePos[i])
+                .sub(basePos[i]);
 
-            Vector2 worldPos = board.toWorldPos(cornerPositions[i]);
+            Vector2 worldPos = board.toWorldPos(boardCornerPos);
             float tileSize = board.getTileSize();
+            Player.setPositionOffset(new Vector2(PLAYER_IMAGE_OFFSET, PLAYER_IMAGE_OFFSET));
+            players[i] = new Player(worldPos.x, worldPos.y, tileSize*0.9f, tileSize*0.9f, stage, i+1);
+            players[i].addListener(this::handlePlayerClick);
 
-            players[i] = new Player(worldPos.x + playerOffsetFactor, worldPos.y + playerOffsetFactor, tileSize*0.9f, tileSize*0.9f, stage, i);
-            players[i].setListener(this::handlePlayerClick);
-            board.initializePlayer(players[i], cornerPositions[i]);
+            Vector2 winMapping = BASE_MAPPINGS.get(basePos[i]);
+            winningPositions.put(players[i], winMapping.cpy().scl(board.getGridSize()).sub(winMapping));
+            board.initializePlayer(players[i], boardCornerPos);
         }
         board.setListenerAllTiles(this::handleTileClick);
         generateRandomMovement();
-    }
-
-    public void draw(SpriteBatch batch) {
-        board.draw(batch);
     }
 
     public void update() {
@@ -96,7 +111,6 @@ public class GameManager implements Disposable {
         if (c != null) c.close();
         GameServer s = server;
         if (s != null) s.stop();
-        Player.dispose();
         players = null;
     }
 
@@ -249,7 +263,7 @@ public class GameManager implements Disposable {
 
     Player findPlayerByID(int id) {
         for (Player p: players) {
-            if (id == p.playerID) {
+            if (p.getID().equals(id)) {
                 return p;
             }
         }
@@ -258,32 +272,12 @@ public class GameManager implements Disposable {
 
     void handlePlayerClick(int playerID) {
         if (started && (!networked() || playerID != myId)) { return; }
-        if (selectedPlayer == null || selectedPlayer.playerID != playerID) {
+        if (selectedPlayer == null || selectedPlayer.getID().intValue() != playerID) {
             System.out.println("Player " + playerID + " selected");
             selectedPlayer = findPlayerByID(playerID);
+            System.out.println(selectedPlayer + " selected");
 
-            Set<Vector2> visited = new HashSet<>();
-            Stack<Vector2> explore = new Stack<>();
-            explore.add(board.getPlayerPosition(selectedPlayer));
-            for (int i = 0; i <= currentMovement; i++) {
-                // Start the queue and thus first iteration with the player's own tile.
-                // On each subsequent iteration, the queue will begin with all adjacent tiles found
-                // in the previous iteration, excluding tiles visited in prior iterations.
-                // All tiles visited will be marked, including the starting square.
-                // Each iteration uses up one movement, with the first iteration only marking the starting square.
-                Stack<Vector2> found = new Stack<>();
-                while (!explore.empty()) {
-                    Vector2 pos = explore.pop();
-                    visited.add(pos);
-                    List<Vector2> adjacent = board.getAdjacentPositions(pos, true);
-                    for (Vector2 item: adjacent) {
-                        if (!visited.contains(item)) {
-                            found.add(item);
-                        }
-                    }
-                }
-                explore.addAll(found);
-            }
+            Set<Vector2> visited = board.pathFind(board.getPlayerPosition(selectedPlayer), currentMovement);
             System.out.println("Targets:");
             for (Vector2 moveEligible: visited) {
                 System.out.println(moveEligible);
@@ -291,9 +285,14 @@ public class GameManager implements Disposable {
             }
             System.out.println("Available movement: " + currentMovement);
         }
-        else {
-            System.out.println("Player " + selectedPlayer.playerID + " stayed put!");
+        else if (selectedPlayer.getID().equals(playerID)) {
+            System.out.println(selectedPlayer + " stayed put!");
             resetTurnContext();
+        }
+        else {
+            Player other = findPlayerByID(playerID);
+            Vector2 otherPos = board.getPlayerPosition(other);
+            handleTileClick(board.fetchTile(otherPos).getID());
         }
     }
 
@@ -310,21 +309,52 @@ public class GameManager implements Disposable {
                 }
             }
             else {
-                System.out.println("Player " + selectedPlayer.playerID + " stayed put!");
-                resetTurnContext();
+                System.out.println(selectedPlayer + " stayed put!");
             }
+            resetTurnContext();
         }
+    }
+
+
+    private void generateWinScreen(Player winner) {
+        Texture background = new Texture("EmptyTile.png");
+        Label winnerText = UIService.createLabel(winner + " has won!");
+        TextButton baseButton = UIService.createTextButton("Exit", background, null, null);
+        Viewport view = stage.getViewport();
+        Vector2 topRight = new Vector2(view.getWorldWidth(), view.getWorldHeight());
+        new TrivialEntity<>(baseButton, _void -> Gdx.app.exit());
+
+        winnerText.setFontScale(2);
+        winnerText.setPosition(topRight.x/2 - winnerText.getWidth(), topRight.y/1.7f);
+
+        baseButton.setTransform(true);
+        baseButton.setScale(3);
+        baseButton.setPosition(topRight.x/2 - baseButton.getWidth()*1.5f, topRight.y/2.5f - baseButton.getHeight());      
+        UIService.modifyTextButtonStyle(baseButton, style -> style.fontColor = Color.BLACK);  
+
+        stage.clear();
+        stage.addActor(winnerText);
+        stage.addActor(baseButton);
     }
 
     private void applyMove(Player p, Vector2 newPos) {
         board.movePlayer(p, newPos);
-        p.moveImage(board.toWorldPos(newPos).add(playerOffsetFactor, playerOffsetFactor));
-        System.out.println("MOVED player id " + p.playerID + " to " + newPos);
+        p.setPosition(board.toWorldPos(newPos));
+        System.out.println("MOVED " + p + "to " + newPos);
+        if (playerWon(p)) {
+            System.out.println(p + " wins!");
+            generateWinScreen(p);
+        }
     }
 
     private void movePlayer(Player p, Vector2 newPos) {
         applyMove(p, newPos);
         resetTurnContext();
+    }
+
+
+    private boolean playerWon(Player p) {
+        return board.getPlayerPosition(p).epsilonEquals(winningPositions.get(p));
     }
 
     private void resetTurnContext() {

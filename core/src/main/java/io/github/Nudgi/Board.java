@@ -1,20 +1,25 @@
 package io.github.Nudgi;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
-import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+
+import io.github.Nudgi.entities.IdentifyingListener;
+import io.github.Nudgi.entities.Player;
+import io.github.Nudgi.entities.ShiftArrow;
+import io.github.Nudgi.entities.Tile;
+import io.github.Nudgi.entities.ShiftArrow.ShiftID;
 
 public class Board {
     private Tile[][] tiles;
     private Vector2 position;
     private Vector2 gridSize;
     private float tileSize;
+    private Map<Direction, ShiftArrow[]> arrows = new EnumMap<>(Direction.class);
 
     public Board(Vector2 _position, float _size, Vector2 _gridSize, Stage stage){
         gridSize = _gridSize;
@@ -29,13 +34,13 @@ public class Board {
             _position.y + (_size - boardHeight) / 2f
         );
         generateBoard(gridSize);
+        generateArrows(stage);
         forEachTile((pos, target) -> {
             Vector2 worldPos = toWorldPos(pos);
             target.setGraphics(worldPos.x, worldPos.y, tileSize, tileSize);
-            target.addToStage(stage);
+            stage.addActor(target.getActor());
         });
     }
-
 
     private void generateBoard(Vector2 gridSize){
         tiles = new Tile[(int) gridSize.x][(int) gridSize.y];
@@ -53,6 +58,102 @@ public class Board {
         }
     }
 
+    private int getArrowBounds(Direction dir) {
+        return (int)(dir.isVertical() ? gridSize.x - 2 : gridSize.y - 2);
+    }
+
+    private Vector2 getArrowGridPos(ShiftArrow arrow) {
+        ShiftID id = arrow.getID();
+        Direction dir = id.dir.inverse(); // "LEFT" arrows appear on the right, and so on.
+        int index = id.index;
+
+        Vector2 pos = dir.vector();
+        if (pos.x > 0 || pos.y > 0) {
+            pos.scl(dir.isVertical() ? gridSize.y : gridSize.x);
+        }
+        if (dir.isVertical()) {
+            pos.add(index, 0);
+        }
+        else {
+            pos.add(0, index);
+        }
+        
+        return pos;
+    }
+
+    private void generateArrows(Stage stage) {
+        // Based on the direction that the arrow is facing.
+        for (Direction dir: Direction.values()) {
+            int bounds = getArrowBounds(dir);
+            ShiftArrow[] arr = new ShiftArrow[bounds];
+
+            for (int i = 0; i < bounds; i++) {
+                arr[i] = new ShiftArrow(i+1, dir);
+                arr[i].addListener(this::shift);
+                
+                Vector2 worldPos = toWorldPos(getArrowGridPos(arr[i]));
+                Image arrowImage = arr[i].getActor();
+                arrowImage.setPosition(worldPos.x, worldPos.y);
+                arrowImage.setSize(tileSize, tileSize);
+                arrowImage.setOrigin(tileSize/2, tileSize/2);
+                arrowImage.setRotation(dir.degrees());
+                stage.addActor(arrowImage);
+            }
+            arrows.put(dir, arr);
+        }
+    }
+
+    public void shift(ShiftID id) {
+        shift(id.index, id.dir);
+    }
+
+    private void moveTile(Tile usingTileAt, int toX, int toY) {
+        tiles[toX][toY] = usingTileAt;
+        tiles[toX][toY].setPosition(toWorldPos(toX, toY));
+    }
+
+    private void moveTile(int fromX, int fromY, int toX, int toY) {
+        moveTile(tiles[fromX][fromY], toX, toY);
+    }
+
+    public void shift(int index, Direction direction) {
+        System.out.println("Shifted on index " + index + " " + direction);
+        Tile wrap;
+
+        switch (direction) {
+            case DOWN:
+                wrap = tiles[index][0];
+                for (int y = 1; y < gridSize.y; y++) {
+                    moveTile(index, y, index, y-1);
+                }
+                moveTile(wrap, index, (int)gridSize.y - 1);
+                break;
+
+            case UP:
+                wrap = tiles[index][(int) (gridSize.y - 1)];
+                for (int y = (int) (gridSize.y - 2); y >= 0; y--) {
+                    moveTile(index, y, index, y+1);
+                }
+                moveTile(wrap, index, 0);
+                break;
+
+            case LEFT:
+                wrap = tiles[0][index];
+                for (int x = 1; x < gridSize.x; x++) {
+                    moveTile(x, index, x-1, index);
+                }
+                moveTile(wrap, (int)gridSize.x - 1, index);
+                break;
+
+            case RIGHT:
+                wrap = tiles[(int) (gridSize.x - 1)][index];
+                for (int x = (int) (gridSize.x - 2); x >= 0; x--) {
+                    moveTile(x, index, x+1, index);
+                }
+                moveTile(wrap, 0, index);
+                break;
+        }
+    }
 
     // Only call for adjacent tiles.
     private boolean blockedByWall(Vector2 pos1, Vector2 pos2, Direction from1to2) {
@@ -98,9 +199,13 @@ public class Board {
         return gridPos.cpy().scl(tileSize).add(position);
     }
 
+    public Vector2 toWorldPos(float x, float y) {
+        return toWorldPos(new Vector2(x, y));
+    }
+
     public Vector2 getPlayerPosition(Player p) {
-        Optional<TileInfo> container = search(info -> info.tile.containsPlayer(p));
-        return container.orElseThrow(IllegalArgumentException::new).pos;
+        return search(info -> info.tile.containsPlayer(p))
+            .orElseThrow(IllegalArgumentException::new).pos;
     }
 
     /**
@@ -119,17 +224,13 @@ public class Board {
         endingTile.addPlayer(p);
     }
 
-    public void setListenerAllTiles(IdentifyingListener listener) {
-        forEachTile((pos, tile) -> {
-            tile.setListener(listener);
-        });
-    }
+    public void setListenerAllTiles(IdentifyingListener<Integer> listener) {
+        forEachTile((pos, tile) -> tile.addListener(listener));
+    } 
 
 
     public void clearHighlights() {
-        forEachTile((pos, tile) -> {
-            tile.setHighlighted(false);
-        });
+        forEachTile((pos, tile) -> tile.setHighlighted(false));
     }
 
     /**
@@ -200,7 +301,6 @@ public class Board {
         return Optional.empty();
     }
 
-
     public void forEachTile(BiConsumer<Vector2, Tile> func) {
         for (int x = 0; x < gridSize.x; x++) {
             for (int y = 0; y < gridSize.y; y++) {
@@ -209,15 +309,43 @@ public class Board {
         }
     }
 
-
-    public void draw(Batch batch){
-        for(int x = 0; x < gridSize.x; x++){
-            for(int y = 0; y < gridSize.y; y++){
-                Vector2 thisTilePos = new Vector2(x * tileSize + position.x, y * tileSize + position.y);
-                tiles[x][y].draw(batch, thisTilePos, tileSize);
+    public Set<Vector2> pathFind(Vector2 startingSquare, int distance) {
+        Set<Vector2> visited = new HashSet<>();
+        Stack<Vector2> explore = new Stack<>();
+        explore.add(startingSquare);
+        for (int i = 0; i <= distance; i++) {
+            // Start the queue and thus first iteration with the player's own tile.
+            // On each subsequent iteration, the queue will begin with all adjacent tiles found
+            // in the previous iteration, excluding tiles visited in prior iterations.
+            // All tiles visited will be marked, including the starting square.
+            // Each iteration uses up one movement, with the first iteration only marking the starting square.
+            Stack<Vector2> found = new Stack<>();
+            while (!explore.empty()) {
+                Vector2 pos = explore.pop();
+                visited.add(pos);
+                List<Vector2> adjacent = getAdjacentPositions(pos, true);
+                for (Vector2 item : adjacent) {
+                    if (!visited.contains(item)) {
+                        found.add(item);
+                    }
+                }
             }
+            explore.addAll(found);
         }
+        return visited;
     }
+
+
+    public Vector2 toGrid(Vector2 worldPos) {
+        float gx = (worldPos.x - position.x) / tileSize;
+        float gy = (worldPos.y - position.y) / tileSize;
+
+        int x = (int)Math.floor(gx);
+        int y = (int)Math.floor(gy);
+
+        return new Vector2(x, y);
+    }
+
 
     public static class TileInfo {
         public final Vector2 pos;

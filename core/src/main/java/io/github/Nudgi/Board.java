@@ -89,7 +89,6 @@ public class Board {
 
             for (int i = 0; i < bounds; i++) {
                 arr[i] = new ShiftArrow(i+1, dir);
-                arr[i].addListener(this::shift);
                 
                 Vector2 worldPos = toWorldPos(getArrowGridPos(arr[i]));
                 Image arrowImage = arr[i].getActor();
@@ -211,7 +210,7 @@ public class Board {
     /**
      * Moves the player from one tile to another.
      * Do not use this method if the player isn't already on the board (use {@code initializePlayer} instead).
-     * This method does <i>not</i> move the player's {@code Image}.
+     * This method will also move the Player's Image.
      * @param p the player to be moved
      * @param newLocation where their new location will be
      * @see Board#initializePlayer(Player, Vector2)
@@ -220,6 +219,8 @@ public class Board {
         Tile startingTile = fetchTile(getPlayerPosition(p));
         Tile endingTile = fetchTile(newLocation);
 
+        p.setPosition(toWorldPos(newLocation));
+
         startingTile.removePlayer(p);
         endingTile.addPlayer(p);
     }
@@ -227,6 +228,15 @@ public class Board {
     public void setListenerAllTiles(IdentifyingListener<Integer> listener) {
         forEachTile((pos, tile) -> tile.addListener(listener));
     } 
+
+
+    public void setListenerAllArrows(IdentifyingListener<ShiftID> listener) {
+        arrows.forEach((dir, arrowList) -> {
+            for (ShiftArrow arrow: arrowList) {
+                arrow.addListener(listener);
+            }
+        });
+    }
 
 
     public void clearHighlights() {

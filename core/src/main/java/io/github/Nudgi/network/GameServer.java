@@ -16,7 +16,7 @@ public class GameServer {
     private final Object lock = new Object();
     private ServerSocket serverSocket;
     private volatile boolean running;
-
+    
     // Standard server attributes
     public GameServer(int port, int maxPlayers, String boardMessage, int tileCount) {
         this.port = port;
@@ -71,13 +71,35 @@ public class GameServer {
     // This is also where the Lock happens
     private void handleLine(ClientHandler from, String line) {
         String[] p = line.split(" ");
-        if (p.length != 2 || !p[0].equals("MOVE")) return;
-        int tile;
-        try { tile = Integer.parseInt(p[1]); } catch (NumberFormatException e) { return; }
-        if (tile < 1 || tile > tileCount) return;
-        synchronized (lock) {
-            lastTile.put(from.id, tile);
-            broadcast("MOVED " + from.id + " " + tile);
+        if (p.length != 2) return;
+        Message m;
+        try { m = Message.valueOf(p[0]); }
+        catch(IllegalArgumentException e) { return; }
+        switch(m) {
+            case MOVED: {
+                int tile;
+                try { tile = Integer.parseInt(p[1]); } catch (NumberFormatException e) { return; }
+                if (tile < 1 || tile > tileCount) return;
+                synchronized (lock) {
+                    lastTile.put(from.id, tile);
+                    broadcast(Message.MOVED.name() + " " + from.id +  " " + tile);
+                }
+                break;
+            }
+            case WIN:
+                synchronized (lock) {
+                    broadcast(Message.WIN.name() + " " + p[1]);
+                }
+                break;
+            case SHIFT: 
+                synchronized (lock) {
+                    broadcast(Message.SHIFT.name() + " " + p[1]);
+                }
+                break;
+            // (empty)
+            case FULL:
+            case BOARD:
+            case WELCOME: 
         }
     }
 
@@ -116,12 +138,12 @@ public class GameServer {
             try {
                 synchronized (lock) {
                     int newId = freeId();
-                    if (newId < 0) { send("FULL"); return; }
+                    if (newId < 0) { send(Message.FULL.name()); return; }
                     id = newId;
-                    send("WELCOME " + id);
+                    send(Message.WELCOME.name() + " " + id);
                     if (boardMessage != null) send(boardMessage);
                     for (Map.Entry<Integer, Integer> e : lastTile.entrySet())
-                        send("MOVED " + e.getKey() + " " + e.getValue());
+                        send(Message.MOVED.name() + " " + e.getKey() + " " + e.getValue());
                     clients.add(this);
                 }
                 String line;

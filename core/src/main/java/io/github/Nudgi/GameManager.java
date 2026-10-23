@@ -23,8 +23,10 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 
 import io.github.Nudgi.entities.Player;
 import io.github.Nudgi.entities.TrivialEntity;
+import io.github.Nudgi.entities.ShiftArrow.ShiftID;
 import io.github.Nudgi.network.GameClient;
 import io.github.Nudgi.network.GameServer;
+import io.github.Nudgi.network.Message;
 
 public class GameManager implements Disposable {
     private static final Map<Vector2, Vector2> BASE_MAPPINGS = new HashMap<>();
@@ -82,7 +84,7 @@ public class GameManager implements Disposable {
             Vector2 worldPos = board.toWorldPos(boardCornerPos);
             float tileSize = board.getTileSize();
             Player.setPositionOffset(new Vector2(PLAYER_IMAGE_OFFSET, PLAYER_IMAGE_OFFSET));
-            players[i] = new Player(worldPos.x, worldPos.y, tileSize*0.9f, tileSize*0.9f, stage, i+1);
+            players[i] = new Player(worldPos.x, worldPos.y, tileSize*0.9f, tileSize*0.9f, stage, i);
             players[i].addListener(this::handlePlayerClick);
 
             Vector2 winMapping = BASE_MAPPINGS.get(basePos[i]);
@@ -90,6 +92,7 @@ public class GameManager implements Disposable {
             board.initializePlayer(players[i], boardCornerPos);
         }
         board.setListenerAllTiles(this::handleTileClick);
+        board.setListenerAllArrows(this::handleArrowClick);
         generateRandomMovement();
     }
 
@@ -139,7 +142,7 @@ public class GameManager implements Disposable {
         connectTo(hostAddress);
     }
 
-    void startTyping() {
+    private void startTyping() {
         typing = true;
         ipBuffer.setLength(0);
         showTyping();
@@ -156,7 +159,7 @@ public class GameManager implements Disposable {
         }
     }
 
-    boolean handleTypedChar(char c) {
+    private boolean handleTypedChar(char c) {
         if (!typing) return false;
         if (c == '\r' || c == '\n') {
             typing = false;
@@ -172,7 +175,7 @@ public class GameManager implements Disposable {
         return true;
     }
 
-    boolean handleKeyDown(int keycode) {
+    private boolean handleKeyDown(int keycode) {
         if (!typing) return false;
         if (keycode == Input.Keys.ESCAPE) {
             typing = false;
@@ -209,7 +212,10 @@ public class GameManager implements Disposable {
     private void onDisconnected() {
         client = null;
         myId = -1;
-        if (!rejected) status = "Disconnected from host";
+        if (!rejected) {
+            status = "Disconnected from host";
+            endGame("You have been disconnected from the server.");
+        }
     }
 
     private boolean networked() {
@@ -219,38 +225,51 @@ public class GameManager implements Disposable {
     // Throw it into a string and decode on the other side
     // Not as efficient as communicating only changes but prevents partial desyncs
     private String encodeBoard() {
-        StringBuilder sb = new StringBuilder("BOARD");
+        StringBuilder sb = new StringBuilder(Message.BOARD.name());
         for (int p : board.getAllPaths()) sb.append(' ').append(p);
         return sb.toString();
     }
 
     // Simple communication dictionary for communicating between server and clients
-    void handleMessage(String line) {
+    private void handleMessage(String line) {
         if (players == null) return;
         String[] p = line.split(" ");
         try {
-            switch (p[0]) {
-                case "WELCOME":
+            Message m = Message.valueOf(p[0]);
+            switch (m) {
+                case WELCOME:
                     myId = Integer.parseInt(p[1]);
                     status = "You are player " + myId + hostInfo;
                     break;
-                case "BOARD": {
+                case BOARD: {
                     int[] paths = new int[p.length - 1];
                     for (int i = 0; i < paths.length; i++) paths[i] = Integer.parseInt(p[i + 1]);
                     board.applyAllPaths(paths);
                     break;
                 }
-                case "MOVED": {
+                case MOVED: {
                     Player player = findPlayerByID(Integer.parseInt(p[1]));
                     Board.TileInfo target = board.fetchTile(Integer.parseInt(p[2]));
                     applyMove(player, target.pos);
                     break;
                 }
-                case "FULL":
+                case FULL:
                     rejected = true;
                     started = false;
                     status = "Game room is full";
                     break;
+                case WIN: {
+                    Player player = findPlayerByID(Integer.parseInt(p[1]));
+                    endGame(player + " has won!");
+                    break;
+                }
+                case SHIFT: {
+                    String[] shiftid = p[1].split("\\.");
+                    Direction dir = Direction.valueOf(shiftid[0]);
+                    int index = Integer.parseInt(shiftid[1]);
+                    board.shift(index, dir);
+                    break;
+                }
             }
         } catch (RuntimeException e) {
             System.err.println("Bad message from server: " + line + " (" + e + ")");
@@ -261,7 +280,7 @@ public class GameManager implements Disposable {
         currentMovement = ThreadLocalRandom.current().nextInt(1, 7);
     }
 
-    Player findPlayerByID(int id) {
+    private Player findPlayerByID(int id) {
         for (Player p: players) {
             if (p.getID().equals(id)) {
                 return p;
@@ -270,11 +289,18 @@ public class GameManager implements Disposable {
         throw new IllegalArgumentException("Failed to find player with id " + id);
     }
 
-    void handlePlayerClick(int playerID) {
-        if (started && (!networked() || playerID != myId)) { return; }
-        if (selectedPlayer == null || selectedPlayer.getID().intValue() != playerID) {
-            System.out.println("Player " + playerID + " selected");
-            selectedPlayer = findPlayerByID(playerID);
+    private void handlePlayerClick(int targetPlayerID) {
+        if (started && (!networked())) { return; }
+        if (targetPlayerID != myId) {
+            if (selectedPlayer != null && selectedPlayer.getID().equals(targetPlayerID)) {
+                Player other = findPlayerByID(targetPlayerID);
+                Vector2 otherPos = board.getPlayerPosition(other);
+                handleTileClick(board.fetchTile(otherPos).getID());
+            }
+            return;
+        }
+        if (selectedPlayer == null) {
+            selectedPlayer = findPlayerByID(targetPlayerID);
             System.out.println(selectedPlayer + " selected");
 
             Set<Vector2> visited = board.pathFind(board.getPlayerPosition(selectedPlayer), currentMovement);
@@ -285,47 +311,53 @@ public class GameManager implements Disposable {
             }
             System.out.println("Available movement: " + currentMovement);
         }
-        else if (selectedPlayer.getID().equals(playerID)) {
+        else {
             System.out.println(selectedPlayer + " stayed put!");
             resetTurnContext();
         }
-        else {
-            Player other = findPlayerByID(playerID);
-            Vector2 otherPos = board.getPlayerPosition(other);
-            handleTileClick(board.fetchTile(otherPos).getID());
-        }
     }
 
-    void handleTileClick(int tileID) {
+    private void handleTileClick(int tileID) {
         if (selectedPlayer == null) { return; }
         Board.TileInfo target = board.fetchTile(tileID);
-        if (target.tile.isHighlighted()) {
-            if (!target.tile.containsPlayer(selectedPlayer)) {
-                if (started) {
-                    if (networked()) client.send("MOVE " + tileID);
-                    resetTurnContext();
-                } else {
-                    movePlayer(selectedPlayer, target.pos);
+        if (!target.tile.isHighlighted()) { return; }
+        if (!target.tile.containsPlayer(selectedPlayer)) {
+            if (started) {
+                if (networked()) {
+                    client.send(Message.MOVED.name() + " " + tileID);
+                    if (playerWon(selectedPlayer)) {
+                        client.send(Message.WIN.name() + " " + selectedPlayer.getID());
+                    }
                 }
+                resetTurnContext();
+            } else {
+                movePlayer(selectedPlayer, target.pos);
             }
-            else {
-                System.out.println(selectedPlayer + " stayed put!");
-            }
-            resetTurnContext();
         }
+        else {
+            System.out.println(selectedPlayer + " stayed put!");
+        }
+        resetTurnContext();
+    }
+
+    private void handleArrowClick(ShiftID sid) {
+        if (!networked()) { return; }
+        client.send(Message.SHIFT.name() + " " + sid.dir.name() + "." + sid.index);
     }
 
 
-    private void generateWinScreen(Player winner) {
+    private void endGame(String withMessage) {
         Texture background = new Texture("EmptyTile.png");
-        Label winnerText = UIService.createLabel(winner + " has won!");
+        Label message = UIService.createLabel(withMessage);
         TextButton baseButton = UIService.createTextButton("Exit", background, null, null);
         Viewport view = stage.getViewport();
         Vector2 topRight = new Vector2(view.getWorldWidth(), view.getWorldHeight());
         new TrivialEntity<>(baseButton, _void -> Gdx.app.exit());
-
-        winnerText.setFontScale(2);
-        winnerText.setPosition(topRight.x/2 - winnerText.getWidth(), topRight.y/1.7f);
+        
+        message.setWidth(topRight.x * 0.5f);
+        message.setFontScale(1.7f);
+        message.setPosition(topRight.x/4, topRight.y/1.7f);
+        message.setWrap(true);
 
         baseButton.setTransform(true);
         baseButton.setScale(3);
@@ -333,17 +365,16 @@ public class GameManager implements Disposable {
         UIService.modifyTextButtonStyle(baseButton, style -> style.fontColor = Color.BLACK);  
 
         stage.clear();
-        stage.addActor(winnerText);
+        stage.addActor(message);
         stage.addActor(baseButton);
     }
 
     private void applyMove(Player p, Vector2 newPos) {
         board.movePlayer(p, newPos);
-        p.setPosition(board.toWorldPos(newPos));
         System.out.println("MOVED " + p + "to " + newPos);
         if (playerWon(p)) {
             System.out.println(p + " wins!");
-            generateWinScreen(p);
+            endGame(p + " has won!");
         }
     }
 

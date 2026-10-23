@@ -4,20 +4,20 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Scaling;
 
 import io.github.Nudgi.Direction;
-import io.github.Nudgi.UIService;
 
 import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Tile extends Entity<Integer, Stack> {
-    public final int tileID;
-
     private static final Texture highlight = new Texture("highlight.png");
 
-    private Texture sprite = new Texture("EmptyTile.png");
+    public final int tileID;
+
+    private volatile Texture sprite = new Texture("EmptyTile.png");
     private int paths = 0;
     private int rotation = 1;
     private final Image highlightedImage = new Image(highlight);
@@ -99,7 +99,9 @@ public class Tile extends Entity<Integer, Stack> {
                 }
                 break;
             case 4: sprite = new Texture("FourWayTile.png");break;
-            default: break;
+            default: 
+                sprite = new Texture("EmptyTile.png");
+                break;
         }
     }
 
@@ -135,7 +137,7 @@ public class Tile extends Entity<Integer, Stack> {
         paths = newPaths;
         rotation = 1; // same default a freshly built tile starts with
         setSprite(Integer.bitCount(paths));
-        tileImage.setDrawable(UIService.drawableFromTexture(sprite));
+        tileImage.setDrawable(new TextureRegionDrawable(sprite));
         tileImage.setRotation(rotation * 90);
     }
 

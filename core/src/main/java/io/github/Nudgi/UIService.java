@@ -6,11 +6,10 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
-import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Null;
 
 
@@ -36,13 +35,6 @@ public final class UIService {
 
     private UIService() {}
 
-    public static Drawable drawableFromTexture(Texture texture) {
-        if (texture == null) { return null; }
-        Skin skin = new Skin();
-        skin.add("1", texture);
-        return skin.getDrawable("1");
-    }
-
     public static TextButton createTextButton(@Null String message) {
         return new TextButton(message, new TextButtonStyle(DEFAULT_BUTTON_STYLE));
     }
@@ -50,8 +42,6 @@ public final class UIService {
     /**
      * Any of the parameters may be null.
      * Creates a new TextButton with the specified message and textures.
-     * Buttons act similarly to a checkbox, in that clicking on them causes them
-     * to flip between the checked and unchecked states.
      * @param message
      * @param up the texture to display when the button is unchecked. 
      * Also displayed by default if either down or checked are not specified
@@ -65,9 +55,9 @@ public final class UIService {
         TextButton textButton = createTextButton(message);
         
         modifyTextButtonStyle(textButton, style -> {            
-            style.up = drawableFromTexture(up);
-            style.down = drawableFromTexture(down);
-            style.checked = drawableFromTexture(checked);
+            style.up = (up == null) ? null : new TextureRegionDrawable(up);
+            style.down = (down == null) ? null : new TextureRegionDrawable(down);
+            style.checked = (checked == null) ? null : new TextureRegionDrawable(checked);
         });
         return textButton;
     }
@@ -88,9 +78,9 @@ public final class UIService {
      * @param background
      * @return the new Label.
      */
-    public static Label createLabel(@Null String message, @Null Texture background) {
+    public static Label createLabel(@Null String message, Texture background) {
         Label label = createLabel(message);
-        modifyLabelStyle(label, style -> style.background = drawableFromTexture(background));
+        modifyLabelStyle(label, style -> style.background = new TextureRegionDrawable(background));
         return label;
     }
 

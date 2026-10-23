@@ -26,6 +26,9 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 - [Player Movement](https://docs.google.com/document/d/1xKP9NifVkKyYLq4-aHesP8PpuBHuFJWMUUbH6KvO2oY/edit?tab=t.0 "Player Movement")
 - [Networking](https://docs.google.com/document/d/17Nrr1fzNYtPUSSX8ve5Je1b2VpxK9WhOguunlntGuw4/edit?tab=t.0 "Networking")
 - [Win Condition](https://docs.google.com/document/d/10vQhCBvmNac5hzISVDdFBYvCG_S7UgLJT743wtbF7Sg/edit?tab=t.0 "Win Condition")
+- [Enemies](https://docs.google.com/document/d/1dX7O7lUW2KOnatMYAExGsDEV2lOmd2zjUcCB1ltucm0/edit?tab=t.0 "Enemies")
+- [Powerups](https://docs.google.com/document/d/1OhnZyk5g_jWgIjxDEeMKImv6NGtRK4GTMBCFvDJWqMQ/edit?tab=t.0 "Powerups")
+- [Treasure](https://docs.google.com/document/d/18vZ_ndwaJ78zIjhK0ZYcd0S8GAxvvKCrjdHLbsWWsec/edit?tab=t.0 "Treasures")
 
 ### Completed
 

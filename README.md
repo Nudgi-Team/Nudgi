@@ -29,6 +29,7 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 - [Enemies](https://docs.google.com/document/d/1dX7O7lUW2KOnatMYAExGsDEV2lOmd2zjUcCB1ltucm0/edit?tab=t.0 "Enemies")
 - [Powerups](https://docs.google.com/document/d/1OhnZyk5g_jWgIjxDEeMKImv6NGtRK4GTMBCFvDJWqMQ/edit?tab=t.0 "Powerups")
 - [Treasure](https://docs.google.com/document/d/18vZ_ndwaJ78zIjhK0ZYcd0S8GAxvvKCrjdHLbsWWsec/edit?tab=t.0 "Treasures")
+- [Turn Management](https://docs.google.com/document/d/1mmOQCIvcs5Lbvi6v3SWkTOXnALoEY4BRis3yaw1P_ZY/edit?tab=t.0 "Turn Management")
 
 ### Completed
 
@@ -37,7 +38,6 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 
 ### Upcoming
 
-- [Turn Management](https://docs.google.com/document/d/1NOCoOTdKG_9spo3uMet2lnwfgNiNHnXw6t-LcNTdTH8/edit?tab=t.0 "Turn Management")
 - [Board Objects](https://docs.google.com/document/d/1zg5x2khFJc299fgYcZNbo1OLq5wmPSmK8lM4O7iFAVQ/edit?tab=t.0 "Board Objects")
 
 ## Meeting Summaries - [Template (link)](https://docs.google.com/document/d/1YBH1sPN3Tn1IL58iR_LdvnfkF7CgVUHUkOxGYOes0Q4/edit?tab=t.0 "Meeting Summary Template (copy to use)")

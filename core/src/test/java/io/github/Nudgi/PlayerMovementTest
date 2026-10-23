@@ -35,18 +35,11 @@ Test 5 - Valid Highlighted Tiles:
     Expected:
         Stops at rolled distance
         Does not pass through any tile's walls
-        Tile player is standing on should NOT be highlighted
+        Tile player is standing on should be highlighted
 
 Movement Tests:
 Test 6 - Invalid Tile Clicked:
     Action: Click on not highlighted tile (player can't move there)
-    Expected:
-        The same tiles highlighted
-        Game continues to wait for user input
-        No errors logged
-
-Test 7 - Click on Player's Current Tile (Player must move):
-    Action: Click on the tile the player is currently on
     Expected:
         The same tiles highlighted
         Game continues to wait for user input

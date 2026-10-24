@@ -16,6 +16,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Disposable;
@@ -27,6 +28,7 @@ import io.github.Nudgi.entities.ShiftArrow.ShiftID;
 import io.github.Nudgi.network.GameClient;
 import io.github.Nudgi.network.GameServer;
 import io.github.Nudgi.network.Message;
+import io.github.Nudgi.network.TurnStep;
 
 public class GameManager implements Disposable {
     private static final Map<Vector2, Vector2> BASE_MAPPINGS = new HashMap<>();
@@ -39,10 +41,8 @@ public class GameManager implements Disposable {
 
     private final Stage stage;
     private final Board board;
-    private Map<Player, Vector2> winningPositions = new HashMap<>();
+    private final Vector2[] winningPositions = new Vector2[4];
     private Player[] players = new Player[4];
-    private Player selectedPlayer = null;
-    private int currentMovement;
     private final Consumer<Runnable> mainThread;   // runs something on the render thread
     private volatile GameServer server;
     private volatile GameClient client;
@@ -50,6 +50,7 @@ public class GameManager implements Disposable {
     private volatile boolean rejected;             // server said FULL
     private volatile String status = "Press H to host, J to join";
     private volatile String hostInfo = "";
+    private TurnStep step;
     private String shownStatus;
     private int myId = -1;
     private int turnId = -1;
@@ -57,6 +58,9 @@ public class GameManager implements Disposable {
     private boolean typing;
     private final StringBuilder ipBuffer = new StringBuilder();
     private final Label turnPlayerLabel = UIService.createLabel(null);
+    private final Label turnStepLabel = UIService.createLabel(null);
+    private final Label lobbyLabel = UIService.createLabel("See above for instructions.");
+    private final Image lobbyPointer = new Image(new Texture("Arrow.png"));
 
     public GameManager(Board board, Stage stage) {
         this(board, stage, r -> Gdx.app.postRunnable(r));
@@ -71,35 +75,14 @@ public class GameManager implements Disposable {
             @Override public boolean keyDown(InputEvent event, int keycode) { return handleKeyDown(keycode); }
         });
 
-        float PLAYER_IMAGE_OFFSET = board.getTileSize()/5;
-        Vector2[] basePos = {
-            Vector2.Zero,
-            Vector2.X,
-            Vector2.Y,
-            Vector2.One
-        };
-
-        for (int i = 0; i < players.length; i++) {
-            Vector2 boardCornerPos = board.getGridSize()
-                .scl(basePos[i])
-                .sub(basePos[i]);
-
-            Vector2 worldPos = board.toWorldPos(boardCornerPos);
-            float tileSize = board.getTileSize();
-            Player.setPositionOffset(new Vector2(PLAYER_IMAGE_OFFSET, PLAYER_IMAGE_OFFSET));
-            players[i] = new Player(worldPos.x, worldPos.y, tileSize*0.9f, tileSize*0.9f, stage, i);
-            players[i].addListener(this::handlePlayerClick);
-
-            Vector2 winMapping = BASE_MAPPINGS.get(basePos[i]);
-            winningPositions.put(players[i], winMapping.cpy().scl(board.getGridSize()).sub(winMapping));
-            board.initializePlayer(players[i], boardCornerPos);
-        }
-        board.setListenerAllTiles(this::handleTileClick);
-        board.setListenerAllArrows(this::handleArrowClick);
-        generateRandomMovement();
-
         Viewport vp = stage.getViewport();
-        turnPlayerLabel.setPosition(0.05f*vp.getWorldWidth(), vp.getWorldHeight()*0.5f);
+        lobbyLabel.setFontScale(1.7f);
+        UIService.centerWidget(vp, lobbyLabel, true, true);
+        lobbyPointer.setPosition(vp.getWorldWidth()*0.1f, vp.getWorldHeight()*0.8f);
+        lobbyPointer.setSize(vp.getWorldWidth()*0.15f, vp.getWorldHeight()*0.15f);
+
+        stage.addActor(lobbyLabel);
+        stage.addActor(lobbyPointer);
     }
 
     public void update() {
@@ -110,7 +93,7 @@ public class GameManager implements Disposable {
         String s = status;
         if (networked() && turnId >= 0) {
             long secs = Math.max(0, (turnDeadline - System.currentTimeMillis() + 999) / 1000);
-            s += myTurn() ? "  |  YOUR TURN (" + secs + "s)" : "  |  Player " + turnId + "'s turn (" + secs + "s)";
+            s += myTurn() ? "  |  YOUR TURN (" + secs + "s)" : "  |  Player " + getPlayerDisplayID(turnId) + "'s turn (" + secs + "s)";
             turnPlayerLabel.setText(s);
         }
         if (!s.equals(shownStatus)) {
@@ -127,7 +110,6 @@ public class GameManager implements Disposable {
         if (s != null) s.stop();
         players = null;
     }
-
     // Standard TCP LAN Connection
     public void host() {
         if (started) return;
@@ -151,6 +133,48 @@ public class GameManager implements Disposable {
         if (started) return;
         started = true;
         connectTo(hostAddress);
+    }
+
+    private void startGame() {
+        stage.clear();
+
+        float PLAYER_IMAGE_OFFSET = board.getTileSize()/5;
+        Vector2[] basePos = {
+            Vector2.Zero,
+            Vector2.X,
+            Vector2.Y,
+            Vector2.One
+        };
+
+        for (int i = 0; i < players.length; i++) {
+            Vector2 boardCornerPos = board.getGridSize()
+                .scl(basePos[i])
+                .sub(basePos[i]);
+
+            Vector2 worldPos = board.toWorldPos(boardCornerPos);
+            float tileSize = board.getTileSize();
+            Player.setPositionOffset(new Vector2(PLAYER_IMAGE_OFFSET, PLAYER_IMAGE_OFFSET));
+            players[i] = new Player(worldPos.x, worldPos.y, tileSize*0.9f, tileSize*0.9f, stage, i);
+            players[i].addListener(this::handlePlayerClick);
+
+            Vector2 winMapping = BASE_MAPPINGS.get(basePos[i]);
+            winningPositions[i] = winMapping.cpy().scl(board.getGridSize()).sub(winMapping);
+            board.initializePlayer(players[i], boardCornerPos);
+        }
+
+        board.forEachTile((pos, tile) -> tile.addListener(this::handleTileClick));
+        board.forEachTile((pos, tile) -> stage.addActor(tile.getActor()));
+        board.forEachArrow(arrow -> arrow.addListener(this::handleArrowClick));
+        board.forEachArrow(arrow -> stage.addActor(arrow.getActor()));
+
+        stage.addActor(turnPlayerLabel);
+        stage.addActor(turnStepLabel);
+
+        Viewport vp = stage.getViewport();
+
+        turnPlayerLabel.setPosition(0.05f*vp.getWorldWidth(), vp.getWorldHeight()*0.95f);
+        turnStepLabel.setY(vp.getWorldHeight()*0.05f);
+        UIService.centerWidget(vp, turnStepLabel, true, false);
     }
 
     private void startTyping() {
@@ -255,7 +279,10 @@ public class GameManager implements Disposable {
             switch (m) {
                 case WELCOME:
                     myId = Integer.parseInt(p[1]);
-                    status = "You are player " + myId + hostInfo;
+                    status = "You are player " + getPlayerDisplayID(myId) + hostInfo;
+                    if (server != null) {
+                        lobbyLabel.setText("Waiting for players...");
+                    }
                     break;
                 case BOARD: {
                     int[] paths = new int[p.length - 1];
@@ -263,16 +290,19 @@ public class GameManager implements Disposable {
                     board.applyAllPaths(paths);
                     break;
                 }
-                case MOVED: {
+                case PLAYER_MOVED: {
                     Player player = findPlayerByID(Integer.parseInt(p[1]));
                     Board.TileInfo target = board.fetchTile(Integer.parseInt(p[2]));
                     applyMove(player, target.pos);
+                    board.forEachTile((pos, tile) -> tile.setHighlighted(false));
+                    if (playerWon(player) && myId == player.getID().intValue()) {
+                        client.send(Message.WIN.name() + " " + player.getID());
+                    }
                     break;
                 }
                 case TURN:
                     turnId = Integer.parseInt(p[1]);
                     turnDeadline = System.currentTimeMillis() + Long.parseLong(p[2]);
-                    if (selectedPlayer != null) resetTurnContext();
                     break;
                 case FULL:
                     rejected = true;
@@ -291,6 +321,16 @@ public class GameManager implements Disposable {
                     board.shift(index, dir);
                     break;
                 }
+                case STEP: {
+                    updateStep(TurnStep.valueOf(p[1]));
+                    if (myTurn()) {
+                        handleTurnStep(step);
+                    }
+                    break;
+                }
+                case START: 
+                    startGame();
+                    break;
             }
         } catch (RuntimeException e) {
             System.err.println("Bad message from server: " + line + " (" + e + ")");
@@ -298,12 +338,40 @@ public class GameManager implements Disposable {
     }
 
     private void generateRandomMovement() {
-        currentMovement = ThreadLocalRandom.current().nextInt(1, 7);
+        int currentMovement = ThreadLocalRandom.current().nextInt(1, 7);
+
+        Set<Vector2> visited = board.pathFind(board.getPlayerPosition(getTurnPlayer()), currentMovement);
+        System.out.println("Targets:");
+        for (Vector2 moveEligible: visited) {
+            System.out.println(moveEligible);
+            board.fetchTile(moveEligible).setHighlighted(true);
+        }
+    }
+
+    private void updateStep(TurnStep newStep) {
+        step = newStep;
+        turnStepLabel.setText(step.name().toLowerCase());
+    }
+
+    private void handleTurnStep(TurnStep newStep) {
+        System.out.println("STEP: " + newStep.name());
+        switch(newStep) {
+            case SHIFTING: {
+                // In the future, you could put an animation for the arrows here
+                // to indicate that they can be clicked
+                break;
+            }
+            case MOVING: {
+                board.forEachArrow(arrow -> arrow.getActor().clearActions());
+                generateRandomMovement();
+                break;
+            }
+        }
     }
 
     private Player findPlayerByID(int id) {
         for (Player p: players) {
-            if (p.getID().equals(id)) {
+            if (p != null && p.getID().equals(id)) {
                 return p;
             }
         }
@@ -311,72 +379,38 @@ public class GameManager implements Disposable {
     }
 
     private void handlePlayerClick(int targetPlayerID) {
-        if (started && (!networked() || !myTurn())) { return; }
-        if (targetPlayerID != myId) {
-            if (selectedPlayer != null && selectedPlayer.getID().equals(targetPlayerID)) {
-                Player other = findPlayerByID(targetPlayerID);
-                Vector2 otherPos = board.getPlayerPosition(other);
-                handleTileClick(board.fetchTile(otherPos).getID());
-            }
-            return;
-        }
-        if (selectedPlayer == null) {
-            selectedPlayer = findPlayerByID(targetPlayerID);
-            System.out.println(selectedPlayer + " selected");
-
-            Set<Vector2> visited = board.pathFind(board.getPlayerPosition(selectedPlayer), currentMovement);
-            System.out.println("Targets:");
-            for (Vector2 moveEligible: visited) {
-                System.out.println(moveEligible);
-                board.fetchTile(moveEligible).setHighlighted(true);
-            }
-            System.out.println("Available movement: " + currentMovement);
-        }
-        else {
-            System.out.println(selectedPlayer + " stayed put!");
-            resetTurnContext();
-        }
+        // Possibly change this to a tooltip in the future showing the player id and their
+        // existing powerups 
+        System.out.println("Player clicked " + targetPlayerID);
     }
 
     private void handleTileClick(int tileID) {
-        if (selectedPlayer == null || (started && !myTurn())) { return; }
+        if (!myTurn() || step != TurnStep.MOVING) { return; }
+
         Board.TileInfo target = board.fetchTile(tileID);
         if (!target.tile.isHighlighted()) { return; }
-        if (!target.tile.containsPlayer(selectedPlayer)) {
-            if (started) {
-                if (networked()) {
-                    client.send(Message.MOVED.name() + " " + tileID);
-                    if (playerWon(selectedPlayer)) {
-                        client.send(Message.WIN.name() + " " + selectedPlayer.getID());
-                    }
-                }
-                resetTurnContext();
-            } else {
-                movePlayer(selectedPlayer, target.pos);
-            }
-        }
-        else {
-            System.out.println(selectedPlayer + " stayed put!");
-        }
-        resetTurnContext();
+
+        client.send(Message.PLAYER_MOVED.name() + " " + tileID);
     }
 
     private void handleArrowClick(ShiftID sid) {
-        if (!networked()) { return; }
+        if (!myTurn() || step != TurnStep.SHIFTING) { return; }
         client.send(Message.SHIFT.name() + " " + sid.dir.name() + "." + sid.index);
     }
 
 
     private void endGame(String withMessage) {
+        status = "Game has ended";
         Texture background = new Texture("EmptyTile.png");
         Label message = UIService.createLabel(withMessage);
         TextButton baseButton = UIService.createTextButton("Exit", background, null, null);
         Viewport view = stage.getViewport();
         Vector2 topRight = new Vector2(view.getWorldWidth(), view.getWorldHeight());
-        new TrivialEntity<>(baseButton, _void -> Gdx.app.exit());
+        new TrivialEntity<>(baseButton, Gdx.app::exit);
         
         message.setFontScale(1.7f);
-        message.setPosition(topRight.x/2 - Math.min(message.getPrefWidth()/2, view.getWorldWidth()/2.1f), topRight.y/1.7f);
+        UIService.centerWidget(view, message, true, false);
+        message.setY(topRight.y/1.7f);
 
         baseButton.setTransform(true);
         baseButton.setScale(3);
@@ -390,30 +424,22 @@ public class GameManager implements Disposable {
 
     private void applyMove(Player p, Vector2 newPos) {
         board.movePlayer(p, newPos);
-        System.out.println("MOVED " + p + "to " + newPos);
-        if (playerWon(p)) {
-            System.out.println(p + " wins!");
-            endGame(p + " has won!");
-        }
-    }
-
-    private void movePlayer(Player p, Vector2 newPos) {
-        applyMove(p, newPos);
-        resetTurnContext();
+        System.out.println("MOVED " + p + " to " + newPos);
     }
 
 
     private boolean playerWon(Player p) {
-        return board.getPlayerPosition(p).epsilonEquals(winningPositions.get(p));
+        return board.getPlayerPosition(p).epsilonEquals(winningPositions[p.getID()]);
     }
 
-    private void resetTurnContext() {
-        board.clearHighlights();
-        generateRandomMovement();
-        selectedPlayer = null;
+    private Player getTurnPlayer() {
+        return findPlayerByID(turnId);
+    }
+
+    private int getPlayerDisplayID(int fromId) {
+        return ++fromId;
     }
 
     // Debugging
     int getMyId() { return myId; }
-    Player getSelectedPlayer() { return selectedPlayer; }
 }

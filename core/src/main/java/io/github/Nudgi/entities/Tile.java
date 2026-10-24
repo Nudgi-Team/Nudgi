@@ -21,7 +21,7 @@ public class Tile extends Entity<Integer, Stack> {
     private int paths = 0;
     private int rotation = 1;
     private final Image highlightedImage = new Image(highlight);
-    private final TileImage tileImage;
+    private final Image tileImage;
     private final Stack tileGraphics;
     private ArrayList<Player> players = new ArrayList<>();
 
@@ -37,7 +37,7 @@ public class Tile extends Entity<Integer, Stack> {
         paths |= west ? WEST:0;
 
         setSprite(Integer.bitCount(paths));
-        tileImage = new TileImage(sprite);
+        tileImage = new Image(sprite);
         graphicsInit();
     }
 
@@ -46,7 +46,7 @@ public class Tile extends Entity<Integer, Stack> {
         this.tileID = tileID;
         tileGraphics = getActor();
         generatePaths();
-        tileImage = new TileImage(sprite);
+        tileImage = new Image(sprite);
         graphicsInit();
     }
 
@@ -151,10 +151,12 @@ public class Tile extends Entity<Integer, Stack> {
 
     public void addPlayer(Player p) {
         players.add(p);
+        tileGraphics.addActor(p.getActor());
     }
 
     public void removePlayer(Player p) {
         players.remove(p);
+        tileGraphics.removeActor(p.getActor());
     }
 
     public boolean isHighlighted() {
@@ -182,25 +184,5 @@ public class Tile extends Entity<Integer, Stack> {
     @Override 
     public void setPosition(Vector2 to) {
         super.setPosition(to);
-        for (Player player: players) {
-            player.setPosition(to);
-        }
-    }
-
-
-    private class TileImage extends Image {
-        public TileImage(Texture t) {
-            super(t);
-        }
-
-        @Override 
-        protected void sizeChanged() {
-            tileGraphics.setSize(this.getWidth(), this.getHeight());
-        }
-
-        @Override
-        protected void scaleChanged() {
-            tileGraphics.setScale(this.getScaleX(), this.getScaleY());
-        }
     }
 }

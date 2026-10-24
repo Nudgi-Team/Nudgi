@@ -10,6 +10,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
+import com.badlogic.gdx.utils.Null;
+
 // Ultimately this just creates a thread for each connected player, locks the inactive player thread, and unlocks the active player thread
 
 public class TurnManager {
@@ -28,6 +30,10 @@ public class TurnManager {
     private long deadline;
     private long token;
     private ScheduledFuture<?> timeout;
+
+    // null = no player may perform any action (useful later on when animations need to play)
+    // any non-null value = the turn player may perform the designated action
+    private volatile TurnStep step = null; 
 
     public TurnManager(Object lock, long turnMillis, Supplier<Collection<Integer>> connected, BiConsumer<Integer, Long> onTurn) {
         this.lock = lock;
@@ -59,8 +65,16 @@ public class TurnManager {
         return Math.max(0, TimeUnit.NANOSECONDS.toMillis(deadline - System.nanoTime()));
     }
 
+    public TurnStep getStep() {
+        return step;
+    }
+
+    public void setStep(@Null TurnStep step) {
+        this.step = step;
+    }
+
     public String currentTurnMessage() {
-        return current == -1 ? null : "TURN " + current + " " + remainingMillis();
+        return current == -1 ? null : Message.TURN.name() + " " + current + " " + remainingMillis();
     }
 
     public void stop() {
@@ -93,6 +107,7 @@ public class TurnManager {
                 }
             }, turnMillis, TimeUnit.MILLISECONDS);
         } catch (RejectedExecutionException ignored) {}
+        step = TurnStep.SHIFTING;
         onTurn.accept(id, turnMillis);
     }
 }

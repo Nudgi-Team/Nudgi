@@ -20,7 +20,7 @@ public class Main extends ApplicationAdapter {
     public void create() {
         gameStage = new Stage();
 
-        int marginSize = 42;
+        int marginSize = 90;
         Vector2 windowSize = new Vector2(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         float boardSize = Math.min(windowSize.x, windowSize.y) - marginSize*2;
 
@@ -29,7 +29,7 @@ public class Main extends ApplicationAdapter {
 
         viewport = new FitViewport(windowSize.x, windowSize.y, camera);
         gameStage.setViewport(viewport);
-        board = new Board(new Vector2(windowSize.x/2-boardSize/2,windowSize.y/2-boardSize/2), boardSize, new Vector2(9,9), gameStage);
+        board = new Board(new Vector2(windowSize.x/2-boardSize/2,windowSize.y/2-boardSize/2), boardSize, new Vector2(9,9));
         game = new GameManager(board, gameStage);
         Gdx.input.setInputProcessor(gameStage);
     }

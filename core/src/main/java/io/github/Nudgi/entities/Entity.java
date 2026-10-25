@@ -12,16 +12,24 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 /**
  * Abstract class containing methods faciliating
  * responses to clicks detected on the given Actor, as well as resizing operations.
- * Responses are added via IdentifyingListeners,
+ * Responses are added via {@link IdentifyingListener IdentifyingListeners},
  * which allow for the identification of the entity that was clicked.
- * <p>
+ *
  * @param <T> identifier type, or {@link Void} for entities without identifiers
  * @param <A> actor type
+ * @apiNote Remember that for any Actor to show up, including the one within an Entity,
+ * you must add it to a {@code Stage}! 
+ * This can be done using something such as: 
+ * <pre>
+ * {@code stage.addActor(myEntity.getActor());}
+ * </pre>
+ * @see TrivialEntity
+ * @see IdentifyingListener
  */
 public abstract class Entity<T, A extends Actor> {
     private final List<IdentifyingListener<T>> listeners = new ArrayList<>();
-    private A actor;
-    private T id;
+    private final A actor;
+    private final T id;
     private boolean paused;
 
     protected Entity(A actor, T id) {
@@ -48,15 +56,15 @@ public abstract class Entity<T, A extends Actor> {
         return id;
     }
 
-    public void addListener(IdentifyingListener<T> listener) {
-        listeners.add(listener);
+    public final void addListener(IdentifyingListener<T> listener) {
+        if (listener != null) { listeners.add(listener); }
     }
 
-    public void addListeners(List<IdentifyingListener<T>> listeners) {
-        this.listeners.addAll(listeners);
+    public final void addListeners(List<IdentifyingListener<T>> listeners) {
+        for (IdentifyingListener<T> listener: listeners) { addListener(listener); }
     }
 
-    public void clearListeners() {
+    public final void clearListeners() {
         listeners.clear();
     }
 
@@ -64,7 +72,7 @@ public abstract class Entity<T, A extends Actor> {
      * Sets the pause status for this entity.
      * While paused, the entity will no longer respond to clicks,
      * but existing listeners are not removed.
-     * @param flag true to pause listeners on this entity.
+     * @param flag true to pause listeners on this entity. false to resume.
      */
     public void setPaused(boolean flag) {
         paused = flag;
@@ -96,11 +104,11 @@ public abstract class Entity<T, A extends Actor> {
     
     @Override 
     public String toString() {
-        return String.format("ACTOR %s with ID %s:\n", actor.toString(), id.toString())
+        return String.format("ENTITY with Actor %s and ID %sn", actor.toString(), id.toString())
             + String.format("position: %s\n", getPosition())
             + String.format("origin: %s\n", getOrigin())
-            + String.format("scale: %s", getScale())
-            + String.format("size: %s", getSize());
+            + String.format("scale: %s\n", getScale())
+            + String.format("size: %s\n", getSize());
     }
 
     private class ClickDetector extends ClickListener {

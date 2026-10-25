@@ -7,10 +7,12 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.ui.Widget;
 import com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Null;
+import com.badlogic.gdx.utils.viewport.Viewport;
 
 
 /**
@@ -94,5 +96,14 @@ public final class UIService {
         TextButtonStyle style = button.getStyle();
         action.accept(style);
         button.setStyle(style);
+    }
+
+    public static void centerWidget(Viewport vp, Widget a, boolean centerX, boolean centerY) {
+        if (centerX) {
+            a.setX(vp.getWorldWidth()/2 - Math.min(a.getPrefWidth()/2, vp.getWorldWidth()/2.1f));
+        }
+        if (centerY) {
+            a.setY(vp.getWorldHeight()/2 - Math.min(a.getPrefHeight()/2, vp.getWorldHeight()/2.1f));
+        }
     }
 }

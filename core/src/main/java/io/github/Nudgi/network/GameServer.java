@@ -14,8 +14,10 @@ public class GameServer {
     private final List<ClientHandler> clients = new CopyOnWriteArrayList<>();
     private final Map<Integer, Integer> lastTile = new LinkedHashMap<>();
     private final Object lock = new Object();
+    private final TurnManager turnManager;
     private ServerSocket serverSocket;
     private volatile boolean running;
+    private boolean gameStarted = false;
     
     // Standard server attributes
     public GameServer(int port, int maxPlayers, String boardMessage, int tileCount) {
@@ -23,6 +25,11 @@ public class GameServer {
         this.maxPlayers = maxPlayers;
         this.boardMessage = boardMessage;
         this.tileCount = tileCount; // Allows for dynamic board sizes in the future
+        this.turnManager = new TurnManager(lock, TurnManager.DEFAULT_TURN_MILLIS, this::connectedIds,
+            (id, ms) -> {
+                broadcast(Message.TURN.name() + " " + id + " " + ms);
+                broadcast(Message.STEP.name() + " " + TurnStep.SHIFTING.name());
+            });
     }
 
     public void start() throws IOException {
@@ -35,6 +42,7 @@ public class GameServer {
 
     public void stop() {
         running = false;
+        synchronized (lock) { turnManager.stop(); }
         try { if (serverSocket != null) serverSocket.close(); } catch (IOException ignored) {}
         for (ClientHandler c : clients) c.close();
     }
@@ -67,6 +75,12 @@ public class GameServer {
         return -1;
     }
 
+    private List<Integer> connectedIds() {
+        List<Integer> ids = new ArrayList<>();
+        for (ClientHandler c : clients) ids.add(c.id);
+        return ids;
+    }
+
     // This is the other side of the switch/case statement from GameManager, handles the "commands" for each client and sends to console for debugging
     // This is also where the Lock happens
     private void handleLine(ClientHandler from, String line) {
@@ -76,30 +90,40 @@ public class GameServer {
         try { m = Message.valueOf(p[0]); }
         catch(IllegalArgumentException e) { return; }
         switch(m) {
-            case MOVED: {
+            case PLAYER_MOVED: {
                 int tile;
                 try { tile = Integer.parseInt(p[1]); } catch (NumberFormatException e) { return; }
                 if (tile < 1 || tile > tileCount) return;
                 synchronized (lock) {
+                    if (!turnManager.isCurrent(from.id) || turnManager.getStep() != TurnStep.MOVING) return;
                     lastTile.put(from.id, tile);
-                    broadcast(Message.MOVED.name() + " " + from.id +  " " + tile);
+                    broadcast(Message.PLAYER_MOVED.name() + " " + from.id +  " " + tile);
+                    turnManager.endTurn(from.id);
                 }
                 break;
             }
             case WIN:
                 synchronized (lock) {
                     broadcast(Message.WIN.name() + " " + p[1]);
+                    turnManager.setStep(null);
+                    turnManager.stop();
                 }
                 break;
             case SHIFT: 
                 synchronized (lock) {
+                    if (!turnManager.isCurrent(from.id) || turnManager.getStep() != TurnStep.SHIFTING) { return; }
                     broadcast(Message.SHIFT.name() + " " + p[1]);
+                    turnManager.setStep(TurnStep.MOVING);
+                    broadcast(Message.STEP.name() + " " + TurnStep.MOVING.name());
                 }
                 break;
             // (empty)
             case FULL:
             case BOARD:
             case WELCOME: 
+            case TURN: 
+            case STEP:
+            case START:
         }
     }
 
@@ -143,14 +167,25 @@ public class GameServer {
                     send(Message.WELCOME.name() + " " + id);
                     if (boardMessage != null) send(boardMessage);
                     for (Map.Entry<Integer, Integer> e : lastTile.entrySet())
-                        send(Message.MOVED.name() + " " + e.getKey() + " " + e.getValue());
+                        send(Message.PLAYER_MOVED.name() + " " + e.getKey() + " " + e.getValue());
                     clients.add(this);
+                    if (clients.size() >= 2) { // Don't start until 2+ players
+                        if (!gameStarted) { // On first start, notify both host and the other player 
+                            gameStarted = true;
+                            broadcast(Message.START.name());
+                        }
+                        else { // Afterwards, notify only new players entering
+                            send(Message.START.name());
+                        }
+                        turnManager.refresh();
+                    }
                 }
                 String line;
                 while ((line = in.readLine()) != null) handleLine(this, line);
             } catch (IOException ignored) {
             } finally {
                 clients.remove(this);
+                synchronized (lock) { turnManager.refresh(); }
                 close();
             }
         }

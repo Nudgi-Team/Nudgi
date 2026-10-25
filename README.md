@@ -7,25 +7,24 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 ## Development cycle information
 
 - Current cycle: 2
-- Cycle Intent: Players can join a game where they must race to the other corner of the board while shifting the board. (To be updated)
+- Cycle Intent: Players can race through a simplified dungeon, using powerups and shifting walls to escape with their treasure before their opponents.
 
 ## [Cycle Presentation (link)](https://docs.google.com/presentation/d/1hyAWfxods5hodeF6vvC9RdubzZMBYmKhqUuFE6TPMXo/edit?slide=id.h28d4c742b04a9950_0_40#slide=id.h28d4c742b04a9950_0_40 "Cycle Presentation")
 
 ## [General planning (link)](https://docs.google.com/document/d/1OdQo34TRY2Hrxp1SSklVcMOJ-Jqr4Vcy3ZOWPZyE4w0/edit?tab=t.0 "Planning document")
 
-## [Current status report (link)](https://docs.google.com/document/d/1nz05WlxeEn5di-28SC_VPLMML8aM6izo/edit#heading=h.sikzabrle87h "Current Status Report")
+## [Current status report (link)](https://docs.google.com/document/d/1D0hgwZCktru1XIh7CJmHyYiXFAEU5ZCW/edit#heading=h.sikzabrle87h "Current Status Report")
 - Past status reports:
     - [Cycle 1 Report #1](https://docs.google.com/document/d/10v7Pbj6k7JzzrXYRHgn1d2ci_lSR2HV-/edit#heading=h.sikzabrle87h "Cycle 1 Status Report 1")
     - [Cycle 1 Report #2](https://docs.google.com/document/d/1Z5WFBWtPt5FA6oTMBvIoCHYWB1SKYJKe/edit "Cycle 1 Status Report 2")
     - [Cycle 1 Report #3](https://docs.google.com/document/d/1xwpr5O2NyeQS4m0Wzhfy5U7ARfyJxWCm/edit#heading=h.sikzabrle87h "Cycle 1 Status Report 3")
-
+    - [Cycle 2 Report #1](https://docs.google.com/document/d/1nz05WlxeEn5di-28SC_VPLMML8aM6izo/edit#heading=h.sikzabrle87h "Cycle 2 Status Report 1")
+  
 ## Design Docs - [Template (link)](https://docs.google.com/document/d/15QqPoigbQFneIwy-A7bhc5gTs5FZ6y1akalJa--ZtyA/edit?tab=t.0 "Design Doc Template (copy to use)")
 
 ### Active
 
-- [Player Movement](https://docs.google.com/document/d/1xKP9NifVkKyYLq4-aHesP8PpuBHuFJWMUUbH6KvO2oY/edit?tab=t.0 "Player Movement")
 - [Networking](https://docs.google.com/document/d/17Nrr1fzNYtPUSSX8ve5Je1b2VpxK9WhOguunlntGuw4/edit?tab=t.0 "Networking")
-- [Win Condition](https://docs.google.com/document/d/10vQhCBvmNac5hzISVDdFBYvCG_S7UgLJT743wtbF7Sg/edit?tab=t.0 "Win Condition")
 - [Enemies](https://docs.google.com/document/d/1dX7O7lUW2KOnatMYAExGsDEV2lOmd2zjUcCB1ltucm0/edit?tab=t.0 "Enemies")
 - [Powerups](https://docs.google.com/document/d/1OhnZyk5g_jWgIjxDEeMKImv6NGtRK4GTMBCFvDJWqMQ/edit?tab=t.0 "Powerups")
 - [Treasure](https://docs.google.com/document/d/18vZ_ndwaJ78zIjhK0ZYcd0S8GAxvvKCrjdHLbsWWsec/edit?tab=t.0 "Treasures")
@@ -35,10 +34,11 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 
 - [Board Generation](https://docs.google.com/document/d/1zmD4rErnJfma34ZQIkqu5GK1MK8kTl2Em-iosYw3BMw/edit?tab=t.0 "Board Generation")
 - [Board Shifting](https://docs.google.com/document/d/1OEnIwxenCAzS8PM1t6CFdrwAKfLscrAUecjFLZhto10/edit?tab=t.0 "Board Shifting")
+- [Player Movement](https://docs.google.com/document/d/1xKP9NifVkKyYLq4-aHesP8PpuBHuFJWMUUbH6KvO2oY/edit?tab=t.0 "Player Movement")
+- [Win Condition](https://docs.google.com/document/d/10vQhCBvmNac5hzISVDdFBYvCG_S7UgLJT743wtbF7Sg/edit?tab=t.0 "Win Condition")
 
 ### Upcoming
 
-- [Board Objects](https://docs.google.com/document/d/1zg5x2khFJc299fgYcZNbo1OLq5wmPSmK8lM4O7iFAVQ/edit?tab=t.0 "Board Objects")
 
 ## Meeting Summaries - [Template (link)](https://docs.google.com/document/d/1YBH1sPN3Tn1IL58iR_LdvnfkF7CgVUHUkOxGYOes0Q4/edit?tab=t.0 "Meeting Summary Template (copy to use)")
 

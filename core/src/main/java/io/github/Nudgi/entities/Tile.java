@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Scaling;
 
 import io.github.Nudgi.Direction;
@@ -12,11 +13,11 @@ import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Tile extends Entity<Integer, Stack> {
-    public final int tileID;
-
     private static final Texture highlight = new Texture("highlight.png");
 
-    private Texture sprite = new Texture("EmptyTile.png");
+    public final int tileID;
+
+    private volatile Texture sprite = new Texture("EmptyTile.png");
     private int paths = 0;
     private int rotation = 1;
     private final Image highlightedImage = new Image(highlight);
@@ -49,7 +50,7 @@ public class Tile extends Entity<Integer, Stack> {
         graphicsInit();
     }
 
-    
+
     private void graphicsInit() {
         tileGraphics.add(tileImage);
         tileGraphics.add(highlightedImage);
@@ -98,7 +99,9 @@ public class Tile extends Entity<Integer, Stack> {
                 }
                 break;
             case 4: sprite = new Texture("FourWayTile.png");break;
-            default: break;
+            default: 
+                sprite = new Texture("EmptyTile.png");
+                break;
         }
     }
 
@@ -123,6 +126,19 @@ public class Tile extends Entity<Integer, Stack> {
 
     public boolean hasPath(Direction dir) {
         return hasPath(dir.mask());
+    }
+
+    public int getPaths() {
+        return paths;
+    }
+
+    public void setPaths(int newPaths) {
+        if (newPaths == paths) return;
+        paths = newPaths;
+        rotation = 1; // same default a freshly built tile starts with
+        setSprite(Integer.bitCount(paths));
+        tileImage.setDrawable(new TextureRegionDrawable(sprite));
+        tileImage.setRotation(rotation * 90);
     }
 
     public ArrayList<Player> getPlayersOnTile() {

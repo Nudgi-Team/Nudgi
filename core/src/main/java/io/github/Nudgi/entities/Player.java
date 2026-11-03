@@ -39,6 +39,6 @@ public class Player extends Entity<Integer, Image> {
 
     @Override 
     public String toString() {
-        return "Player " + getID();
+        return "Player " + (getID() + 1);
     }
 }

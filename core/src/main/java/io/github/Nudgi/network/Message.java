@@ -3,8 +3,11 @@ package io.github.Nudgi.network;
 public enum Message {
     WELCOME,
     BOARD,
-    MOVED,
+    PLAYER_MOVED,
     SHIFT,
     FULL,
     WIN,
+    TURN,
+    STEP,
+    START
 }

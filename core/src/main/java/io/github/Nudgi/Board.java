@@ -2,13 +2,12 @@ package io.github.Nudgi;
 
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 
-import io.github.Nudgi.entities.IdentifyingListener;
 import io.github.Nudgi.entities.Player;
 import io.github.Nudgi.entities.ShiftArrow;
 import io.github.Nudgi.entities.Tile;
@@ -21,7 +20,7 @@ public class Board {
     private float tileSize;
     private Map<Direction, ShiftArrow[]> arrows = new EnumMap<>(Direction.class);
 
-    public Board(Vector2 _position, float _size, Vector2 _gridSize, Stage stage){
+    public Board(Vector2 _position, float _size, Vector2 _gridSize){
         gridSize = _gridSize;
         // Keep all tiles square while still fitting on the screen
         tileSize = _size / Math.max(gridSize.x, gridSize.y);
@@ -34,11 +33,10 @@ public class Board {
             _position.y + (_size - boardHeight) / 2f
         );
         generateBoard(gridSize);
-        generateArrows(stage);
+        generateArrows();
         forEachTile((pos, target) -> {
             Vector2 worldPos = toWorldPos(pos);
             target.setGraphics(worldPos.x, worldPos.y, tileSize, tileSize);
-            stage.addActor(target.getActor());
         });
     }
 
@@ -81,7 +79,7 @@ public class Board {
         return pos;
     }
 
-    private void generateArrows(Stage stage) {
+    private void generateArrows() {
         // Based on the direction that the arrow is facing.
         for (Direction dir: Direction.values()) {
             int bounds = getArrowBounds(dir);
@@ -96,11 +94,12 @@ public class Board {
                 arrowImage.setSize(tileSize, tileSize);
                 arrowImage.setOrigin(tileSize/2, tileSize/2);
                 arrowImage.setRotation(dir.degrees());
-                stage.addActor(arrowImage);
             }
             arrows.put(dir, arr);
         }
     }
+
+
 
     public void shift(ShiftID id) {
         shift(id.index, id.dir);
@@ -225,24 +224,6 @@ public class Board {
         endingTile.addPlayer(p);
     }
 
-    public void setListenerAllTiles(IdentifyingListener<Integer> listener) {
-        forEachTile((pos, tile) -> tile.addListener(listener));
-    } 
-
-
-    public void setListenerAllArrows(IdentifyingListener<ShiftID> listener) {
-        arrows.forEach((dir, arrowList) -> {
-            for (ShiftArrow arrow: arrowList) {
-                arrow.addListener(listener);
-            }
-        });
-    }
-
-
-    public void clearHighlights() {
-        forEachTile((pos, tile) -> tile.setHighlighted(false));
-    }
-
     /**
      * Must be called exactly once for each player upon starting the game.
      * @param p the player to place onto the board.
@@ -317,6 +298,14 @@ public class Board {
                 func.accept(new Vector2(x, y), tiles[x][y]);
             }
         }
+    }
+
+    public void forEachArrow(Consumer<ShiftArrow> func) {
+        arrows.forEach((dir, arrowList) -> {
+            for (ShiftArrow arrow: arrowList) {
+                func.accept(arrow);
+            }
+        });
     }
 
     public Set<Vector2> pathFind(Vector2 startingSquare, int distance) {

@@ -302,7 +302,7 @@ public class GameManager implements Disposable {
                 }
                 case TURN:
                     turnId = Integer.parseInt(p[1]);
-                    turnDeadline = System.currentTimeMillis() + Long.parseLong(p[2]);
+                    //turnDeadline = System.currentTimeMillis() + Long.parseLong(p[2]);
                     break;
                 case FULL:
                     rejected = true;
@@ -328,7 +328,7 @@ public class GameManager implements Disposable {
                     }
                     break;
                 }
-                case START: 
+                case START:
                     startGame();
                     break;
             }
@@ -380,7 +380,7 @@ public class GameManager implements Disposable {
 
     private void handlePlayerClick(int targetPlayerID) {
         // Possibly change this to a tooltip in the future showing the player id and their
-        // existing powerups 
+        // existing powerups
         System.out.println("Player clicked " + targetPlayerID);
     }
 
@@ -407,15 +407,15 @@ public class GameManager implements Disposable {
         Viewport view = stage.getViewport();
         Vector2 topRight = new Vector2(view.getWorldWidth(), view.getWorldHeight());
         new TrivialEntity<>(baseButton, Gdx.app::exit);
-        
+
         message.setFontScale(1.7f);
         UIService.centerWidget(view, message, true, false);
         message.setY(topRight.y/1.7f);
 
         baseButton.setTransform(true);
         baseButton.setScale(3);
-        baseButton.setPosition(topRight.x/2 - baseButton.getWidth()*1.5f, topRight.y/2.5f - baseButton.getHeight());      
-        UIService.modifyTextButtonStyle(baseButton, style -> style.fontColor = Color.BLACK);  
+        baseButton.setPosition(topRight.x/2 - baseButton.getWidth()*1.5f, topRight.y/2.5f - baseButton.getHeight());
+        UIService.modifyTextButtonStyle(baseButton, style -> style.fontColor = Color.BLACK);
 
         stage.clear();
         stage.addActor(message);

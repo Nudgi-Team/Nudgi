@@ -18,12 +18,11 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
  * 
  * 
  * @param <A> actor type
- * @apiNote This class includes an {@link #addListener(Runnable...)} method and a {@link #TrivialEntity(Actor, Runnable...)} 
+ * @apiNote This class includes an {@link #addListener(Runnable...)} method and a {@link #TrivialEntity(A, Runnable...)} 
  * constructor, which allow you to use methods with no arguments as callbacks.
  * @see Entity
- * @see IdentifyingListener
  */
-public final class TrivialEntity<A extends Actor> extends Entity<Void, A> {
+public class TrivialEntity<A extends Actor> extends Entity<Void, A> {
     public TrivialEntity(A actor) {
         super(actor, null);
     }

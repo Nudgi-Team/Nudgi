@@ -1,13 +1,14 @@
 package io.github.Nudgi;
 
+import static io.github.Nudgi.ui.stage.StageManager.STAGE;
+import static io.github.Nudgi.ui.stage.StageManager.VIEW;
+
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.utils.viewport.FitViewport;
-import com.badlogic.gdx.utils.viewport.Viewport;
+
+import io.github.Nudgi.ui.stage.StageManager;
 
 /** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class Main extends ApplicationAdapter {
@@ -19,41 +20,36 @@ public class Main extends ApplicationAdapter {
 
     @Override
     public void create() {
-        gameStage = new Stage();
-
         int marginSize = 90;
-        Vector2 windowSize = new Vector2(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        Vector2 windowSize = StageManager.getWorldSize();
         float boardSize = Math.min(windowSize.x, windowSize.y) - marginSize*2;
 
-        OrthographicCamera camera = new OrthographicCamera(windowSize.x, windowSize.y);
-        camera.setToOrtho(false);
-
-        viewport = new FitViewport(windowSize.x, windowSize.y, camera);
-        gameStage.setViewport(viewport);
         board = new Board(new Vector2(windowSize.x/2-boardSize/2,windowSize.y/2-boardSize/2), boardSize, new Vector2(9,9));
-        game = new GameManager(board, gameStage);
+        game = new GameManager(board);
         Gdx.input.setInputProcessor(gameStage);
         controller = new NetworkController(game);
         game.setDispatcher(controller::fire);
+        game = new GameManager(board);
+        Gdx.input.setInputProcessor(STAGE);
     }
 
     @Override 
     public void resize(int width, int height) {
-        viewport.update(width, height);
+        VIEW.update(width, height);
     }
 
     @Override
     public void render() {
         ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
         game.update();
-        gameStage.getViewport().apply();
-        gameStage.act();
-        gameStage.draw();
+        STAGE.getViewport().apply();
+        STAGE.act();
+        STAGE.draw();
     }
 
     @Override
     public void dispose() {
         game.dispose();
-        gameStage.dispose();
+        STAGE.dispose();
     }
 }

@@ -1,36 +1,38 @@
 package io.github.Nudgi.entities;
 
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Scaling;
 
 import io.github.Nudgi.Direction;
+import io.github.Nudgi.TreasureManager;
 
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Tile extends Entity<Integer, Stack> {
     private static final Texture highlight = new Texture("highlight.png");
+    private static final int NORTH = 1, EAST = 2, SOUTH = 4, WEST = 8;
 
     public final int tileID;
 
-    private volatile Texture sprite = new Texture("EmptyTile.png");
+    private Texture sprite = new Texture("EmptyTile.png");
     private int paths = 0;
     private int rotation = 1;
     private final Image highlightedImage = new Image(highlight);
     private final Image tileImage;
     private final Stack tileGraphics;
     private ArrayList<Player> players = new ArrayList<>();
+    private Integer treasure = null;
 
     public Tile(boolean north, boolean south, boolean east, boolean west, int tileID){
         super(new Stack(), tileID);
         tileGraphics = getActor();
         this.tileID = tileID;
 
-        int NORTH = 1, EAST = 2, SOUTH = 4, WEST = 8;
         paths |= north ? NORTH:0;
         paths |= east ? EAST:0;
         paths |= south ? SOUTH:0;
@@ -75,7 +77,6 @@ public class Tile extends Entity<Integer, Stack> {
     }
 
     private void setSprite(int pathAmount){
-        int NORTH = 1, EAST = 2, SOUTH = 4, WEST = 8;
         switch(pathAmount){
             case 2:
                 if(hasPath(NORTH) && hasPath(SOUTH) || hasPath(EAST) && hasPath(WEST)){
@@ -110,8 +111,6 @@ public class Tile extends Entity<Integer, Stack> {
     }
 
     private int getBentRotation() {
-        int NORTH = 1, EAST = 2, SOUTH = 4, WEST = 8;
-
         if(hasPath(NORTH) && hasPath(WEST)) return 0;
         if(hasPath(SOUTH) && hasPath(WEST)) return 1;
         if(hasPath(SOUTH) && hasPath(EAST)) return 2;
@@ -130,6 +129,10 @@ public class Tile extends Entity<Integer, Stack> {
 
     public int getPaths() {
         return paths;
+    }
+
+    public int getPathCount() {
+        return Integer.bitCount(paths);
     }
 
     public void setPaths(int newPaths) {
@@ -177,12 +180,16 @@ public class Tile extends Entity<Integer, Stack> {
         tileImage.setOrigin(width/2, height/2);
     }
 
-    /**    
-     * Moves both this tile and all other entities on it.
-     * @param to
+    public void addTreasure(int treasure) {
+        this.treasure = treasure;
+        tileGraphics.addActor(TreasureManager.TREASURES[treasure]);
+    }
+
+    /**
+     * Retrieves the treasure ID on this space, if one is present.
+     * @return an Optional containing the treasure id on this tile, if any; otherwise an empty Optional.
      */
-    @Override 
-    public void setPosition(Vector2 to) {
-        super.setPosition(to);
+    public Optional<Integer> getTreasure() {
+        return Optional.ofNullable(treasure);
     }
 }

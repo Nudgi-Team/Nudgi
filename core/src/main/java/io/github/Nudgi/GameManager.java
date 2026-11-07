@@ -1,9 +1,10 @@
 package io.github.Nudgi;
 
 
+import static io.github.Nudgi.ui.stage.StageManager.STAGE;
+import static io.github.Nudgi.ui.stage.StageManager.VIEW;
+
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
@@ -15,34 +16,30 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
-import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Disposable;
-import com.badlogic.gdx.utils.viewport.Viewport;
 
 import io.github.Nudgi.entities.Player;
+import io.github.Nudgi.entities.PlayerManager;
+import io.github.Nudgi.entities.Tile;
 import io.github.Nudgi.entities.TrivialEntity;
 import io.github.Nudgi.entities.ShiftArrow.ShiftID;
 import io.github.Nudgi.network.GameClient;
 import io.github.Nudgi.network.GameServer;
 import io.github.Nudgi.network.TurnStep;
-
+import io.github.Nudgi.network.protocol.BoardMessage;
+import io.github.Nudgi.ui.UIManager;
+import io.github.Nudgi.ui.UIService;
+import io.github.Nudgi.ui.stage.StageManager;
+import io.github.Nudgi.ui.stage.StageManager.Mode;
 import io.github.Nudgi.network.protocol.*;
-import io.github.Nudgi.network.protocol.Message.MessageDeserializationException;
+
 
 public class GameManager implements Disposable, MessageHandler {
-    private static final Map<Vector2, Vector2> BASE_MAPPINGS = new HashMap<>();
-    static {
-        BASE_MAPPINGS.put(Vector2.Zero, Vector2.One);
-        BASE_MAPPINGS.put(Vector2.One, Vector2.Zero);
-        BASE_MAPPINGS.put(Vector2.X, Vector2.Y);
-        BASE_MAPPINGS.put(Vector2.Y, Vector2.X);
-    }
+    private static final int TREASURES_PER_PLAYER = TreasureManager.TREASURE_COUNT / PlayerManager.MAX_PLAYERS;
     private final Board board;
     private final Vector2[] winningPositions = new Vector2[4];
-    private Player[] players = new Player[4];
     private final Consumer<Runnable> mainThread;   // runs something on the render thread
     private volatile GameServer server;
     private volatile GameClient client;
@@ -64,27 +61,20 @@ public class GameManager implements Disposable, MessageHandler {
     private Image lobbyPointer = new Image(new Texture("EmptyTile.png"));
     private final Stage stage;
     
-    public GameManager(Board board, Stage stage) {  
-        this(board, stage, r -> Gdx.app.postRunnable(r));
+    public GameManager(Board board) {
+        this(board, r -> Gdx.app.postRunnable(r));
     }
 
-    public GameManager(Board board, Stage stage, Consumer<Runnable> mainThread) {
+    public GameManager(Board board, Consumer<Runnable> mainThread) {
         this.mainThread = mainThread;
         this.board = board;
-        this.stage = stage;
-        stage.addListener(new InputListener() {
+        
+        STAGE.addListener(new InputListener() {
             @Override public boolean keyTyped(InputEvent event, char c) { return handleTypedChar(c); }
             @Override public boolean keyDown(InputEvent event, int keycode) { return handleKeyDown(keycode); }
         });
-
-        Viewport vp = stage.getViewport();
-        lobbyLabel.setFontScale(1.7f);
-        UIService.centerWidget(vp, lobbyLabel, true, true);
-        lobbyPointer.setPosition(vp.getWorldWidth()*0.1f, vp.getWorldHeight()*0.8f);
-        lobbyPointer.setSize(vp.getWorldWidth()*0.15f, vp.getWorldHeight()*0.15f);
-
-        stage.addActor(lobbyLabel);
-        stage.addActor(lobbyPointer);
+        StageManager.setStageMode(Mode.LOBBY);
+        UIManager.onDevMode(this::beginDevMode);
     }
 
     public void update() {
@@ -109,7 +99,6 @@ public class GameManager implements Disposable, MessageHandler {
         if (c != null) c.close();
         GameServer s = server;
         if (s != null) s.stop();
-        players = null;
     }
 
     // Standard TCP LAN Connection
@@ -118,7 +107,7 @@ public class GameManager implements Disposable, MessageHandler {
         started = true;
         try {
             Vector2 size = board.getGridSize();
-            server = new GameServer(GameServer.DEFAULT_PORT, 4, new BoardMessage(board.getAllPaths()), (int) (size.x * size.y));
+            server = new GameServer(GameServer.DEFAULT_PORT, PlayerManager.MAX_PLAYERS, new BoardMessage(board.getAllPaths()), (int) (size.x * size.y));
             server.start();
             hostInfo = " - hosting on " + GameServer.getLanAddresses();
             System.out.println("Hosting. Others join with one of: " + GameServer.getLanAddresses());
@@ -137,52 +126,91 @@ public class GameManager implements Disposable, MessageHandler {
         connectTo(hostAddress);
     }
 
+    private Vector2 getBoardCornerPos(Corner corner) {
+        return board.getGridSize().scl(corner.vector()).sub(corner.vector());
+    }
+
+    private void beginDevMode() {
+        devMode = true;
+        host();
+        startGame();
+    }
+
+    private boolean isHost() {
+        return server != null;
+    }
+
     private void startGame() {
-        stage.clear();
+        status = "";
+        playerSetup();
+        stageBoard();
+        uiInit();
+        assignTreasuresToPlayers();
+        placeTreasuresOnBoard();
+    }
 
-        float PLAYER_IMAGE_OFFSET = board.getTileSize()/5;
-        Vector2[] basePos = {
-            Vector2.Zero,
-            Vector2.X,
-            Vector2.Y,
-            Vector2.One
-        };
+    private void playerSetup() {
+        // TODO also move to BoardUI
+        // Corner[] basePos = Corner.values();
+            // Vector2 boardCornerPos = getBoardCornerPos(basePos[i]);
+            // Vector2 worldPos = board.toWorldPos(boardCornerPos);
+            // float tileSize = board.getTileSize();
+            
+            PlayerManager.create(isHost(), true);
+            // TODO move this to BoardUI
+            // players[i].setPosition(worldPos);
+            // players[i].setSizeSquare(tileSize*0.9f);
+            // players[i].addListener(this::handlePlayerClick);
 
-        for (int i = 0; i < players.length; i++) {
-            Vector2 boardCornerPos = board.getGridSize()
-                .scl(basePos[i])
-                .sub(basePos[i]);
+            // TODO this logic belongs in a PlayerAdded event
+            // winningPositions[i] = getBoardCornerPos(basePos[i].opposite());
+            // board.initializePlayer(players[i], boardCornerPos);
+    }
 
-            Vector2 worldPos = board.toWorldPos(boardCornerPos);
-            float tileSize = board.getTileSize();
-            Player.setPositionOffset(new Vector2(PLAYER_IMAGE_OFFSET, PLAYER_IMAGE_OFFSET));
-            players[i] = new Player(worldPos.x, worldPos.y, tileSize*0.9f, tileSize*0.9f, stage, i);
-            players[i].addListener(this::handlePlayerClick);
-
-            Vector2 winMapping = BASE_MAPPINGS.get(basePos[i]);
-            winningPositions[i] = winMapping.cpy().scl(board.getGridSize()).sub(winMapping);
-            board.initializePlayer(players[i], boardCornerPos);
-        }
+    public void stageBoard() {
+        StageManager.setStageMode(Mode.GAME);
+        // TODO goes into BoardUI
+        // for (int i = 0; i < players.length; i++) {
+        //     STAGE.addActor(players[i].getActor());
+        // }
 
         board.forEachTile((pos, tile) -> tile.addListener(this::handleTileClick));
-        board.forEachTile((pos, tile) -> stage.addActor(tile.getActor()));
+        board.forEachTile((pos, tile) -> STAGE.addActor(tile.getActor()));
         board.forEachArrow(arrow -> arrow.addListener(this::handleArrowClick));
-        board.forEachArrow(arrow -> stage.addActor(arrow.getActor()));
-
-        stage.addActor(turnPlayerLabel);
-        stage.addActor(turnStepLabel);
-
-        Viewport vp = stage.getViewport();
-
-        turnPlayerLabel.setPosition(0.05f*vp.getWorldWidth(), vp.getWorldHeight()*0.95f);
-        turnStepLabel.setY(vp.getWorldHeight()*0.05f);
-        UIService.centerWidget(vp, turnStepLabel, true, false);
+        board.forEachArrow(arrow -> STAGE.addActor(arrow.getActor()));
     }
 
     private void startTyping() {
         typing = true;
         ipBuffer.setLength(0);
         showTyping();
+    }
+
+
+    private void uiInit() {
+        STAGE.addActor(turnPlayerLabel);
+        STAGE.addActor(turnStepLabel);
+
+        turnPlayerLabel.setPosition(0.05f*VIEW.getWorldWidth(), VIEW.getWorldHeight()*0.95f);
+        turnStepLabel.setY(VIEW.getWorldHeight()*0.05f);
+        UIService.centerWidget(turnStepLabel, true, false);
+    }
+
+    private void assignTreasuresToPlayers() {
+        for (Player p: PlayerManager.getPlayers()) {
+            int[] assignments = TreasureManager.randomTreasures(TREASURES_PER_PLAYER);
+            p.assignTreasures(assignments);
+        }
+    }
+
+    private void placeTreasuresOnBoard() {
+        Tile[] treasureSpots = board.randomTiles(TreasureManager.TREASURE_COUNT, true);
+        for (int i = 0; i < treasureSpots.length; i++) {
+            treasureSpots[i].addTreasure(i);
+            Vector2 pos = board.toWorldPos(board.fetchTile(treasureSpots[i].tileID).pos);
+            TreasureManager.TREASURES[i].setPosition(pos.x, pos.y);
+        }
+        TreasureManager.addLabelsToStage(STAGE);
     }
 
     private void showTyping() {
@@ -326,6 +354,7 @@ public class GameManager implements Disposable, MessageHandler {
     }
 
     // Simple communication dictionary for communicating between server and clients
+    // Client receiver
     private void handleMessage(String line) {
         try {
             Message msg = Message.deserialize(line);
@@ -343,12 +372,16 @@ public class GameManager implements Disposable, MessageHandler {
     private void generateRandomMovement() {
         int currentMovement = ThreadLocalRandom.current().nextInt(1, 7);
 
-        Set<Vector2> visited = board.pathFind(board.getPlayerPosition(getTurnPlayer()), currentMovement);
+        Set<Vector2> visited = board.pathFind(board.getPlayerPosition(PlayerManager.fetchPlayer(myId)), currentMovement);
         System.out.println("Targets:");
         for (Vector2 moveEligible: visited) {
             System.out.println(moveEligible);
             board.fetchTile(moveEligible).setHighlighted(true);
         }
+    }
+
+    private void clearHighlights() {
+        board.forEachTile((pos, tile) -> tile.setHighlighted(false));
     }
 
     private void updateStep(TurnStep newStep) {
@@ -365,20 +398,10 @@ public class GameManager implements Disposable, MessageHandler {
                 break;
             }
             case MOVING: {
-                board.forEachArrow(arrow -> arrow.getActor().clearActions());
                 generateRandomMovement();
                 break;
             }
         }
-    }
-
-    private Player findPlayerByID(int id) {
-        for (Player p: players) {
-            if (p != null && p.getID().equals(id)) {
-                return p;
-            }
-        }
-        throw new IllegalArgumentException("Failed to find player with id " + id);
     }
 
     private void handlePlayerClick(int targetPlayerID) {
@@ -388,7 +411,7 @@ public class GameManager implements Disposable, MessageHandler {
     }
 
     private void handleTileClick(int tileID) {
-        if (!myTurn() || step != TurnStep.MOVING) { return; }
+        if ((!myTurn() || step != TurnStep.MOVING) && !devMode) { return; }
 
         TileInfo target = board.fetchTile(tileID);
         if (!target.tile().isHighlighted()) { return; }
@@ -407,12 +430,11 @@ public class GameManager implements Disposable, MessageHandler {
         Texture background = new Texture("EmptyTile.png");
         Label message = UIService.createLabel(withMessage);
         TextButton baseButton = UIService.createTextButton("Exit", background, null, null);
-        Viewport view = stage.getViewport();
-        Vector2 topRight = new Vector2(view.getWorldWidth(), view.getWorldHeight());
+        Vector2 topRight = StageManager.getWorldSize();
         new TrivialEntity<>(baseButton, Gdx.app::exit);
 
         message.setFontScale(1.7f);
-        UIService.centerWidget(view, message, true, false);
+        UIService.centerWidget(message, true, false);
         message.setY(topRight.y/1.7f);
 
         baseButton.setTransform(true);
@@ -420,9 +442,9 @@ public class GameManager implements Disposable, MessageHandler {
         baseButton.setPosition(topRight.x/2 - baseButton.getWidth()*1.5f, topRight.y/2.5f - baseButton.getHeight());
         UIService.modifyTextButtonStyle(baseButton, style -> style.fontColor = Color.BLACK);
 
-        stage.clear();
-        stage.addActor(message);
-        stage.addActor(baseButton);
+        STAGE.clear();
+        STAGE.addActor(message);
+        STAGE.addActor(baseButton);
     }
 
     private void applyMove(Player p, Vector2 newPos) {
@@ -433,10 +455,6 @@ public class GameManager implements Disposable, MessageHandler {
 
     private boolean playerWon(Player p) {
         return board.getPlayerPosition(p).epsilonEquals(winningPositions[p.getID()]);
-    }
-
-    private Player getTurnPlayer() {
-        return findPlayerByID(turnId);
     }
 
     private int getPlayerDisplayID(int fromId) {

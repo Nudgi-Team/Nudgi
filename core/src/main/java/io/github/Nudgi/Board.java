@@ -2,15 +2,13 @@ package io.github.Nudgi;
 
 import java.util.*;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 
-import io.github.Nudgi.entities.Player;
-import io.github.Nudgi.entities.ShiftArrow;
-import io.github.Nudgi.entities.Tile;
+import io.github.Nudgi.entities.*;
 import io.github.Nudgi.entities.ShiftArrow.ShiftID;
 
 public class Board {
@@ -20,7 +18,7 @@ public class Board {
     private float tileSize;
     private Map<Direction, ShiftArrow[]> arrows = new EnumMap<>(Direction.class);
 
-    public Board(Vector2 _position, float _size, Vector2 _gridSize){
+    public Board(Vector2 _position, float _size, Vector2 _gridSize, Stage stage){
         gridSize = _gridSize;
         // Keep all tiles square while still fitting on the screen
         tileSize = _size / Math.max(gridSize.x, gridSize.y);
@@ -33,10 +31,11 @@ public class Board {
             _position.y + (_size - boardHeight) / 2f
         );
         generateBoard(gridSize);
-        generateArrows();
+        generateArrows(stage);
         forEachTile((pos, target) -> {
             Vector2 worldPos = toWorldPos(pos);
             target.setGraphics(worldPos.x, worldPos.y, tileSize, tileSize);
+            stage.addActor(target.getActor());
         });
     }
 
@@ -75,11 +74,11 @@ public class Board {
         else {
             pos.add(0, index);
         }
-        
+
         return pos;
     }
 
-    private void generateArrows() {
+    private void generateArrows(Stage stage) {
         // Based on the direction that the arrow is facing.
         for (Direction dir: Direction.values()) {
             int bounds = getArrowBounds(dir);
@@ -87,19 +86,19 @@ public class Board {
 
             for (int i = 0; i < bounds; i++) {
                 arr[i] = new ShiftArrow(i+1, dir);
-                
+                arr[i].addListener(this::shift);
+
                 Vector2 worldPos = toWorldPos(getArrowGridPos(arr[i]));
                 Image arrowImage = arr[i].getActor();
                 arrowImage.setPosition(worldPos.x, worldPos.y);
                 arrowImage.setSize(tileSize, tileSize);
                 arrowImage.setOrigin(tileSize/2, tileSize/2);
                 arrowImage.setRotation(dir.degrees());
+                stage.addActor(arrowImage);
             }
             arrows.put(dir, arr);
         }
     }
-
-
 
     public void shift(ShiftID id) {
         shift(id.index, id.dir);
@@ -205,11 +204,13 @@ public class Board {
         return search(info -> info.tile.containsPlayer(p))
             .orElseThrow(IllegalArgumentException::new).pos;
     }
-
+    public Vector2 getEnemyPosition(Enemy e) {
+        return search(info -> info.tile.containsEnemy(e))
+            .orElseThrow(IllegalArgumentException::new).pos;
+    }
     /**
      * Moves the player from one tile to another.
      * Do not use this method if the player isn't already on the board (use {@code initializePlayer} instead).
-     * This method will also move the Player's Image.
      * @param p the player to be moved
      * @param newLocation where their new location will be
      * @see Board#initializePlayer(Player, Vector2)
@@ -218,10 +219,37 @@ public class Board {
         Tile startingTile = fetchTile(getPlayerPosition(p));
         Tile endingTile = fetchTile(newLocation);
 
-        p.setPosition(toWorldPos(newLocation));
-
         startingTile.removePlayer(p);
         endingTile.addPlayer(p);
+
+        p.setPosition(toWorldPos(newLocation));
+        System.out.println("MOVED " + p + "to " + newLocation);
+    }
+    /**
+     * Moves the enemy from one tile to another.
+     * Do not use this method if the enemy isn't already on the board (use {@code initializeEnemy} instead).
+     * @param e the enemy to be moved
+     * @param newLocation where their new location will be
+     * @see Board#initializeEnemy(Enemy, Vector2)
+     */
+    public void moveEnemy(Enemy e, Vector2 newLocation) {
+        Tile startingTile = fetchTile(getEnemyPosition(e));
+        Tile endingTile = fetchTile(newLocation);
+
+        startingTile.removeEnemy(e);
+        endingTile.addEnemy(e);
+
+        e.setPosition(toWorldPos(newLocation));
+        System.out.println("MOVED " + e + "to " + newLocation);
+    }
+
+    public void setListenerAllTiles(IdentifyingListener<Integer> listener) {
+        forEachTile((pos, tile) -> tile.addListener(listener));
+    }
+
+
+    public void clearHighlights() {
+        forEachTile((pos, tile) -> tile.setHighlighted(false));
     }
 
     /**
@@ -233,28 +261,9 @@ public class Board {
         Tile start = fetchTile(startingLocation);
         start.addPlayer(p);
     }
-
-    public int[] getAllPaths() {
-        int[] result = new int[(int) (gridSize.x * gridSize.y)];
-        int i = 0;
-        for (int x = 0; x < gridSize.x; x++) {
-            for (int y = 0; y < gridSize.y; y++) {
-                result[i++] = tiles[x][y].getPaths();
-            }
-        }
-        return result;
-    }
-
-    public void applyAllPaths(int[] paths) {
-        if (paths.length != (int) (gridSize.x * gridSize.y)) {
-            throw new IllegalArgumentException("Board size mismatch");
-        }
-        int i = 0;
-        for (int x = 0; x < gridSize.x; x++) {
-            for (int y = 0; y < gridSize.y; y++) {
-                tiles[x][y].setPaths(paths[i++]);
-            }
-        }
+    public void initializeEnemy(Enemy e, Vector2 startingLocation) {
+        Tile start = fetchTile(startingLocation);
+        start.addEnemy(e);
     }
 
     public Vector2 getPosition() {
@@ -280,6 +289,15 @@ public class Board {
         return container.orElseThrow(IllegalArgumentException::new);
     }
 
+
+    /**
+     * Searches through each tile, then if the provided predicate is true, returns
+     * an Optional containing a TileInfo populated with both the matching tile and its position.
+     * Otherwise, if none match, returns an empty Optional.
+     * @param predicate the condition to check each tile against
+     * @return an Optional containing the TileInfo of the first tile matching the predicate,
+     * if any; otherwise an empty Optional.
+     */
     public Optional<TileInfo> search(Predicate<TileInfo> predicate) {
         for (int x = 0; x < gridSize.x; x++) {
             for (int y = 0; y < gridSize.y; y++) {
@@ -292,20 +310,17 @@ public class Board {
         return Optional.empty();
     }
 
+    /**
+     * Iterates through every tile, passing in both its position and the {@code Tile} itself
+     * to the provided argument for each tile.
+     * @param func the method to be called once per tile
+     */
     public void forEachTile(BiConsumer<Vector2, Tile> func) {
         for (int x = 0; x < gridSize.x; x++) {
             for (int y = 0; y < gridSize.y; y++) {
                 func.accept(new Vector2(x, y), tiles[x][y]);
             }
         }
-    }
-
-    public void forEachArrow(Consumer<ShiftArrow> func) {
-        arrows.forEach((dir, arrowList) -> {
-            for (ShiftArrow arrow: arrowList) {
-                func.accept(arrow);
-            }
-        });
     }
 
     public Set<Vector2> pathFind(Vector2 startingSquare, int distance) {

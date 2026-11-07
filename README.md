@@ -15,7 +15,7 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 
 ## [Reflection · Lessons Learned](https://docs.google.com/document/d/1O0x4PC4i8m6M8NbzNszMoR0KD0okovg0aZps05k7_Zs/edit?tab=t.0 "Lessons Learned")
 
-## [Current status report (link)](https://docs.google.com/document/d/1Gby3SP85rmwGsT6mbamv2NT0NxNmbqEc/edit "Current Status Report")
+## [Current status report (link)](https://docs.google.com/document/d/1dEWYeyz3EHGgcrkW6UMSA0xlC23ujdKj/edit#heading=h.sikzabrle87h "Current Status Report")
 - Past status reports:
     - [Cycle 1 Report #1](https://docs.google.com/document/d/10v7Pbj6k7JzzrXYRHgn1d2ci_lSR2HV-/edit#heading=h.sikzabrle87h "Cycle 1 Status Report 1")
     - [Cycle 1 Report #2](https://docs.google.com/document/d/1Z5WFBWtPt5FA6oTMBvIoCHYWB1SKYJKe/edit "Cycle 1 Status Report 2")

@@ -54,7 +54,6 @@ public class GameManager implements Disposable {
     private String shownStatus;
     private int myId = -1;
     private int turnId = -1;
-    private long turnDeadline;
     private boolean typing;
     private final StringBuilder ipBuffer = new StringBuilder();
     private final Label turnPlayerLabel = UIService.createLabel(null);
@@ -92,8 +91,7 @@ public class GameManager implements Disposable {
         }
         String s = status;
         if (networked() && turnId >= 0) {
-            long secs = Math.max(0, (turnDeadline - System.currentTimeMillis() + 999) / 1000);
-            s += myTurn() ? "  |  YOUR TURN (" + secs + "s)" : "  |  Player " + getPlayerDisplayID(turnId) + "'s turn (" + secs + "s)";
+            s += myTurn() ? "  |  YOUR TURN" : "  |  Player " + getPlayerDisplayID(turnId) + "'s turn";
             turnPlayerLabel.setText(s);
         }
         if (!s.equals(shownStatus)) {

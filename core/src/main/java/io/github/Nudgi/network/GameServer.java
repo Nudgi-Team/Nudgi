@@ -25,9 +25,9 @@ public class GameServer {
         this.maxPlayers = maxPlayers;
         this.boardMessage = boardMessage;
         this.tileCount = tileCount; // Allows for dynamic board sizes in the future
-        this.turnManager = new TurnManager(lock, TurnManager.DEFAULT_TURN_MILLIS, this::connectedIds,
-            (id, ms) -> {
-                broadcast(Message.TURN.name() + " " + id + " " + ms);
+        this.turnManager = new TurnManager(this::connectedIds,
+            (id) -> {
+                broadcast(Message.TURN.name() + " " + id);
                 broadcast(Message.STEP.name() + " " + TurnStep.SHIFTING.name());
             });
     }
@@ -42,7 +42,6 @@ public class GameServer {
 
     public void stop() {
         running = false;
-        synchronized (lock) { turnManager.stop(); }
         try { if (serverSocket != null) serverSocket.close(); } catch (IOException ignored) {}
         for (ClientHandler c : clients) c.close();
     }
@@ -106,7 +105,6 @@ public class GameServer {
                 synchronized (lock) {
                     broadcast(Message.WIN.name() + " " + p[1]);
                     turnManager.setStep(null);
-                    turnManager.stop();
                 }
                 break;
             case SHIFT: 

@@ -10,28 +10,24 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
 
 /**
- * Abstract class containing methods faciliating
- * responses to clicks detected on the given Actor, as well as resizing operations.
+ * Represents a clickable actor.
  * Responses are added via {@link IdentifyingListener IdentifyingListeners},
  * which allow for the identification of the entity that was clicked.
  *
  * @param <T> identifier type, or {@link Void} for entities without identifiers
  * @param <A> actor type
  * @apiNote Remember that for any Actor to show up, including the one within an Entity,
- * you must add it to a {@code Stage}! 
- * This can be done using something such as: 
- * <pre>
- * {@code stage.addActor(myEntity.getActor());}
- * </pre>
+ * you must add it to a {@code Stage}!
  * @see TrivialEntity
  * @see IdentifyingListener
+ * @see io.github.Nudgi.ui.stage.StageManager
  */
 public abstract class Entity<T, A extends Actor> {
     private final List<IdentifyingListener<T>> listeners = new ArrayList<>();
     private final A actor;
     private final T id;
     private boolean paused;
-
+    
     protected Entity(A actor, T id) {
         this.actor = actor;
         this.id = id;
@@ -101,6 +97,10 @@ public abstract class Entity<T, A extends Actor> {
     public Vector2 getSize() {
         return new Vector2(actor.getWidth(), actor.getHeight());
     }
+
+    public void setSizeSquare(float sideLength) {
+        actor.setSize(sideLength, sideLength);
+    }
     
     @Override 
     public String toString() {
@@ -115,9 +115,7 @@ public abstract class Entity<T, A extends Actor> {
         @Override 
         public void clicked(InputEvent event, float x, float y) { 
             if (paused) { return; }
-            for (IdentifyingListener<T> listener: listeners) {
-                listener.onClick(id);
-            }
+            listeners.forEach(listener -> listener.onClick(id));
         }
     }
 }

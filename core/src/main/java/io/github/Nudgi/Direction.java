@@ -1,5 +1,7 @@
 package io.github.Nudgi;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 import com.badlogic.gdx.math.Vector2;
 
 public enum Direction {
@@ -31,6 +33,10 @@ public enum Direction {
         return degrees;
     }
 
+    public Direction random() {
+        return values()[ThreadLocalRandom.current().nextInt(0, values().length)];
+    }
+
     /**
      * Equivalent to {@code rotated(2)}.
      */
@@ -39,7 +45,7 @@ public enum Direction {
     }
 
     public boolean isVertical() {
-        return this == Direction.UP || this == Direction.DOWN;
+        return this == UP || this == DOWN;
     }
 
     /**
@@ -48,7 +54,7 @@ public enum Direction {
      * @return the rotated Direction.
      */
     public Direction rotated(int n) {
-        n %= Direction.values().length;
+        n %= values().length;
         
         Direction value = this;
         for (int i = 0; i < n; i++) {

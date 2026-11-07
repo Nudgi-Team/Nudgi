@@ -24,6 +24,7 @@ public class Tile extends Entity<Integer, Stack> {
     private final Image tileImage;
     private final Stack tileGraphics;
     private ArrayList<Player> players = new ArrayList<>();
+    private ArrayList<Enemy> enemies = new ArrayList<>();
 
     public Tile(boolean north, boolean south, boolean east, boolean west, int tileID){
         super(new Stack(), tileID);
@@ -99,7 +100,7 @@ public class Tile extends Entity<Integer, Stack> {
                 }
                 break;
             case 4: sprite = new Texture("FourWayTile.png");break;
-            default: 
+            default:
                 sprite = new Texture("EmptyTile.png");
                 break;
         }
@@ -144,6 +145,9 @@ public class Tile extends Entity<Integer, Stack> {
     public ArrayList<Player> getPlayersOnTile() {
         return new ArrayList<>(players);
     }
+    public boolean containsEntity(Enemy e) {
+        return containsEnemy(e);
+    }
 
     public boolean containsPlayer(Player p) {
         return players.contains(p);
@@ -157,6 +161,24 @@ public class Tile extends Entity<Integer, Stack> {
     public void removePlayer(Player p) {
         players.remove(p);
         tileGraphics.removeActor(p.getActor());
+    }
+
+    public ArrayList<Enemy> getEnemiesOnTile() {
+        return new ArrayList<>(enemies);
+    }
+
+    public boolean containsEnemy(Enemy e) {
+        return enemies.contains(e);
+    }
+
+    public void addEnemy(Enemy e) {
+        enemies.add(e);
+        tileGraphics.addActor(e.getActor());
+    }
+
+    public void removeEnemy(Enemy e) {
+        enemies.remove(e);
+        tileGraphics.removeActor(e.getActor());
     }
 
     public boolean isHighlighted() {
@@ -177,11 +199,11 @@ public class Tile extends Entity<Integer, Stack> {
         tileImage.setOrigin(width/2, height/2);
     }
 
-    /**    
+    /**
      * Moves both this tile and all other entities on it.
      * @param to
      */
-    @Override 
+    @Override
     public void setPosition(Vector2 to) {
         super.setPosition(to);
     }

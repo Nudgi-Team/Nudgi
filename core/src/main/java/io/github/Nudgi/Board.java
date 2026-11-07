@@ -8,6 +8,7 @@ import java.util.function.Predicate;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 
+import io.github.Nudgi.entities.Enemy;
 import io.github.Nudgi.entities.Player;
 import io.github.Nudgi.entities.ShiftArrow;
 import io.github.Nudgi.entities.Tile;
@@ -75,7 +76,7 @@ public class Board {
         else {
             pos.add(0, index);
         }
-        
+
         return pos;
     }
 
@@ -87,7 +88,7 @@ public class Board {
 
             for (int i = 0; i < bounds; i++) {
                 arr[i] = new ShiftArrow(i+1, dir);
-                
+
                 Vector2 worldPos = toWorldPos(getArrowGridPos(arr[i]));
                 Image arrowImage = arr[i].getActor();
                 arrowImage.setPosition(worldPos.x, worldPos.y);
@@ -205,6 +206,10 @@ public class Board {
         return search(info -> info.tile.containsPlayer(p))
             .orElseThrow(IllegalArgumentException::new).pos;
     }
+    public Vector2 getEnemyPosition(Enemy e) {
+        return search(info -> info.tile.containsEnemy(e))
+            .orElseThrow(IllegalArgumentException::new).pos;
+    }
 
     /**
      * Moves the player from one tile to another.
@@ -223,6 +228,15 @@ public class Board {
         startingTile.removePlayer(p);
         endingTile.addPlayer(p);
     }
+    public void moveEnemy(Enemy e, Vector2 newLocation) {
+        Tile startingTile = fetchTile(getEnemyPosition(e));
+        Tile endingTile = fetchTile(newLocation);
+
+        e.setPosition(toWorldPos(newLocation));
+
+        startingTile.removeEnemy(e);
+        endingTile.addEnemy(e);
+    }
 
     /**
      * Must be called exactly once for each player upon starting the game.
@@ -232,6 +246,10 @@ public class Board {
     public void initializePlayer(Player p, Vector2 startingLocation) {
         Tile start = fetchTile(startingLocation);
         start.addPlayer(p);
+    }
+    public void initializeEnemy(Enemy e, Vector2 startingLocation) {
+        Tile start = fetchTile(startingLocation);
+        start.addEnemy(e);
     }
 
     public int[] getAllPaths() {

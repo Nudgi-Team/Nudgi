@@ -22,6 +22,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
+import io.github.Nudgi.entities.Enemy;
 import io.github.Nudgi.entities.Player;
 import io.github.Nudgi.entities.TrivialEntity;
 import io.github.Nudgi.entities.ShiftArrow.ShiftID;
@@ -293,7 +294,7 @@ public class GameManager implements Disposable {
                 case PLAYER_MOVED: {
                     Player player = findPlayerByID(Integer.parseInt(p[1]));
                     Board.TileInfo target = board.fetchTile(Integer.parseInt(p[2]));
-                    applyMove(player, target.pos);
+                    movePlayer(player, target.pos);
                     board.forEachTile((pos, tile) -> tile.setHighlighted(false));
                     if (playerWon(player) && myId == player.getID().intValue()) {
                         client.send(Message.WIN.name() + " " + player.getID());
@@ -422,11 +423,14 @@ public class GameManager implements Disposable {
         stage.addActor(baseButton);
     }
 
-    private void applyMove(Player p, Vector2 newPos) {
+    private void movePlayer(Player p, Vector2 newPos) {
         board.movePlayer(p, newPos);
         System.out.println("MOVED " + p + " to " + newPos);
     }
-
+    private void moveEnemy(Enemy e, Vector2 newPos) {
+        board.moveEnemy(e, newPos);
+        System.out.println("MOVED " + e + " to " + newPos);
+    }
 
     private boolean playerWon(Player p) {
         return board.getPlayerPosition(p).epsilonEquals(winningPositions[p.getID()]);

@@ -18,7 +18,7 @@ public class GameServer {
     private ServerSocket serverSocket;
     private volatile boolean running;
     private boolean gameStarted = false;
-    
+
     // Standard server attributes
     public GameServer(int port, int maxPlayers, String boardMessage, int tileCount) {
         this.port = port;
@@ -80,7 +80,9 @@ public class GameServer {
         for (ClientHandler c : clients) ids.add(c.id);
         return ids;
     }
-
+    public int getConnectedPlayerCount() {
+        return clients.size();
+    }
     // This is the other side of the switch/case statement from GameManager, handles the "commands" for each client and sends to console for debugging
     // This is also where the Lock happens
     private void handleLine(ClientHandler from, String line) {
@@ -109,7 +111,7 @@ public class GameServer {
                     turnManager.stop();
                 }
                 break;
-            case SHIFT: 
+            case SHIFT:
                 synchronized (lock) {
                     if (!turnManager.isCurrent(from.id) || turnManager.getStep() != TurnStep.SHIFTING) { return; }
                     broadcast(Message.SHIFT.name() + " " + p[1]);
@@ -120,11 +122,22 @@ public class GameServer {
             // (empty)
             case FULL:
             case BOARD:
-            case WELCOME: 
-            case TURN: 
+            case WELCOME:
+            case TURN:
             case STEP:
             case START:
         }
+    }
+
+    public void enemyMoved(int enemyId, int tileId) {
+
+        broadcast(
+                Message.ENEMY_MOVED.name()
+                        + " "
+                        + enemyId
+                        + " "
+                        + tileId
+        );
     }
 
     // Gets IP Address(s) for clients to type in, obviously needs to be communicated in person as it's posted in the title
@@ -170,7 +183,7 @@ public class GameServer {
                         send(Message.PLAYER_MOVED.name() + " " + e.getKey() + " " + e.getValue());
                     clients.add(this);
                     if (clients.size() >= 2) { // Don't start until 2+ players
-                        if (!gameStarted) { // On first start, notify both host and the other player 
+                        if (!gameStarted) { // On first start, notify both host and the other player
                             gameStarted = true;
                             broadcast(Message.START.name());
                         }

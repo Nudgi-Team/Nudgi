@@ -24,6 +24,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 
 import io.github.Nudgi.entities.Enemy;
 import io.github.Nudgi.entities.Player;
+import io.github.Nudgi.entities.Tile;
 import io.github.Nudgi.entities.TrivialEntity;
 import io.github.Nudgi.entities.ShiftArrow.ShiftID;
 import io.github.Nudgi.network.GameClient;
@@ -44,6 +45,7 @@ public class GameManager implements Disposable {
     private final Board board;
     private final Vector2[] winningPositions = new Vector2[4];
     private Player[] players = new Player[4];
+    private int numberOfMoves = 0;
     private final Consumer<Runnable> mainThread;   // runs something on the render thread
     private volatile GameServer server;
     private volatile GameClient client;
@@ -62,6 +64,8 @@ public class GameManager implements Disposable {
     private final Label turnStepLabel = UIService.createLabel(null);
     private final Label lobbyLabel = UIService.createLabel("See above for instructions.");
     private final Image lobbyPointer = new Image(new Texture("Arrow.png"));
+
+    private Enemy[] enemies = new Enemy[2];
 
     public GameManager(Board board, Stage stage) {
         this(board, stage, r -> Gdx.app.postRunnable(r));
@@ -162,6 +166,11 @@ public class GameManager implements Disposable {
             winningPositions[i] = winMapping.cpy().scl(board.getGridSize()).sub(winMapping);
             board.initializePlayer(players[i], boardCornerPos);
         }
+
+        enemies[0] = new Enemy(4,4, board.getTileSize(), board.getTileSize(), stage, 0, "Enemy.png");
+        board.initializeEnemy(enemies[0], new Vector2(3,3));
+        enemies[1] = new Enemy(4,4, board.getTileSize(), board.getTileSize(), stage, 1, "Enemy.png");
+        board.initializeEnemy(enemies[1], new Vector2(5,5));
 
         board.forEachTile((pos, tile) -> tile.addListener(this::handleTileClick));
         board.forEachTile((pos, tile) -> stage.addActor(tile.getActor()));
@@ -299,8 +308,27 @@ public class GameManager implements Disposable {
                     if (playerWon(player) && myId == player.getID().intValue()) {
                         client.send(Message.WIN.name() + " " + player.getID());
                     }
+                    if(server != null){
+                        numberOfMoves++;
+                        if(numberOfMoves >= server.getConnectedPlayerCount()){
+                            for(Enemy enemy : enemies){
+                                enemy.move(board);
+                                int enemyID = enemy.getID();
+                                System.out.println("Enemy ID: " + Integer.toString(enemyID));
+                                System.out.println("Target Tile: " + Integer.toString(board.fetchTile(board.getEnemyPosition(enemy)).tileID));
+                                server.enemyMoved(enemy.getID().intValue(), board.fetchTile(board.getEnemyPosition(enemy)).tileID);
+                            }
+                            numberOfMoves = 0;
+                        }
+                    }
                     break;
                 }
+                case ENEMY_MOVED:{
+                    Enemy enemy = findEnemyByID(Integer.parseInt(p[1]));
+                    Board.TileInfo target = board.fetchTile(Integer.parseInt(p[2]));
+                    moveEnemy(enemy, target.pos);
+                }
+                break;
                 case TURN:
                     turnId = Integer.parseInt(p[1]);
                     //turnDeadline = System.currentTimeMillis() + Long.parseLong(p[2]);
@@ -342,7 +370,7 @@ public class GameManager implements Disposable {
         int currentMovement = ThreadLocalRandom.current().nextInt(1, 7);
 
         Set<Vector2> visited = board.pathFind(board.getPlayerPosition(getTurnPlayer()), currentMovement);
-        System.out.println("Targets:");
+        //System.out.println("Targets:");
         for (Vector2 moveEligible: visited) {
             System.out.println(moveEligible);
             board.fetchTile(moveEligible).setHighlighted(true);
@@ -355,7 +383,7 @@ public class GameManager implements Disposable {
     }
 
     private void handleTurnStep(TurnStep newStep) {
-        System.out.println("STEP: " + newStep.name());
+        //System.out.println("STEP: " + newStep.name());
         switch(newStep) {
             case SHIFTING: {
                 // In the future, you could put an animation for the arrows here
@@ -378,11 +406,19 @@ public class GameManager implements Disposable {
         }
         throw new IllegalArgumentException("Failed to find player with id " + id);
     }
+    private Enemy findEnemyByID(int id) {
+        for (Enemy e: enemies) {
+            if (e != null && e.getID().equals(id)) {
+                return e;
+            }
+        }
+        throw new IllegalArgumentException("Failed to find player with id " + id);
+    }
 
     private void handlePlayerClick(int targetPlayerID) {
         // Possibly change this to a tooltip in the future showing the player id and their
         // existing powerups
-        System.out.println("Player clicked " + targetPlayerID);
+        //System.out.println("Player clicked " + targetPlayerID);
     }
 
     private void handleTileClick(int tileID) {
@@ -425,11 +461,13 @@ public class GameManager implements Disposable {
 
     private void movePlayer(Player p, Vector2 newPos) {
         board.movePlayer(p, newPos);
-        System.out.println("MOVED " + p + " to " + newPos);
+        //System.out.println("MOVED " + p + " to " + newPos);
+
+
     }
     private void moveEnemy(Enemy e, Vector2 newPos) {
         board.moveEnemy(e, newPos);
-        System.out.println("MOVED " + e + " to " + newPos);
+        //System.out.println("MOVED " + e + " to " + newPos);
     }
 
     private boolean playerWon(Player p) {

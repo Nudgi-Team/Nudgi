@@ -4,6 +4,7 @@ public enum Message {
     WELCOME,
     BOARD,
     PLAYER_MOVED,
+    ENEMY_MOVED,
     SHIFT,
     FULL,
     WIN,

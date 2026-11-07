@@ -9,7 +9,7 @@ import io.github.Nudgi.Board;
 import java.util.List;
 import java.util.Random;
 
-public class Enemy extends Entity {
+public class Enemy extends Entity<Integer, Image> {
     private static Vector2 imageOffset = Vector2.Zero.cpy();
 
     /**
@@ -47,8 +47,8 @@ public class Enemy extends Entity {
     }
 
 
-
     public void move(Board board){
+        System.out.println("ENEMY MOVE CALLED");
         // Get random move in any direction
         List<Vector2> tiles = board.getAdjacentPositions(board.getEnemyPosition(this), true);
 

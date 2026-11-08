@@ -10,7 +10,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
-// Ultimately this just creates a thread for each connected player, locks the inactive player thread, and unlocks the active player thread
+// Pure turn-order logic: tracks whose turn it is, rotates through connected player ids,
+// and skips a player whose time runs out. It never touches the wire format; whoever owns
+// it decides how a turn change is announced (the onTurn callback).
 
 public class TurnManager {
     public static final long DEFAULT_TURN_MILLIS = 15000;
@@ -57,10 +59,6 @@ public class TurnManager {
     public long remainingMillis() {
         if (current == -1) return 0;
         return Math.max(0, TimeUnit.NANOSECONDS.toMillis(deadline - System.nanoTime()));
-    }
-
-    public String currentTurnMessage() {
-        return current == -1 ? null : "TURN " + current + " " + remainingMillis();
     }
 
     public void stop() {

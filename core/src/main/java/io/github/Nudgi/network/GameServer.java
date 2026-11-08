@@ -1,71 +1,47 @@
 package io.github.Nudgi.network;
 
-import java.io.*;
-import java.net.*;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.OptionalInt;
 
+// Game-side server logic: who gets which id, move validation, turn order.
+// All socket work is delegated to NetworkingBase.Server.
 public class GameServer {
-    public static final int DEFAULT_PORT = 5000;
+    public static final int DEFAULT_PORT = NetworkingBase.DEFAULT_PORT;
 
-    private final int port, maxPlayers, tileCount;
+    private final int maxPlayers, tileCount;
     private final String boardMessage;
-    private final List<ClientHandler> clients = new CopyOnWriteArrayList<>();
     private final Map<Integer, Integer> lastTile = new LinkedHashMap<>();
     private final Object lock = new Object();
+    private final NetworkingBase.Server net;
     private final TurnManager turnManager;
-    private ServerSocket serverSocket;
-    private volatile boolean running;
 
     // Standard server attributes
     public GameServer(int port, int maxPlayers, String boardMessage, int tileCount) {
-        this.port = port;
         this.maxPlayers = maxPlayers;
         this.boardMessage = boardMessage;
         this.tileCount = tileCount; // Allows for dynamic board sizes in the future
+        this.net = new NetworkingBase.Server(port, new Handler());
         this.turnManager = new TurnManager(lock, TurnManager.DEFAULT_TURN_MILLIS, this::connectedIds,
-            (id, ms) -> broadcast("TURN " + id + " " + ms));
+            (id, ms) -> net.broadcast(NetworkingBase.turn(id, ms)));
     }
 
     public void start() throws IOException {
-        serverSocket = new ServerSocket(port);
-        running = true;
-        Thread t = new Thread(this::acceptLoop, "GameServer-accept");
-        t.setDaemon(true);
-        t.start();
+        net.start();
     }
 
     public void stop() {
-        running = false;
         synchronized (lock) { turnManager.stop(); }
-        try { if (serverSocket != null) serverSocket.close(); } catch (IOException ignored) {}
-        for (ClientHandler c : clients) c.close();
-    }
-
-    private void acceptLoop() {
-        while (running) {
-            try {
-                Socket s = serverSocket.accept();
-                s.setTcpNoDelay(true); // Establish the TCP connection and throw it on a new thread
-                Thread t = new Thread(new ClientHandler(s), "GameServer-client");
-                t.setDaemon(true);
-                t.start();
-            } catch (IOException e) {
-                if (running) e.printStackTrace();
-            }
-        }
-    }
-
-    // Threads are locked until everyone is synced
-    private void broadcast(String msg) {
-        for (ClientHandler c : clients) c.send(msg);
+        net.stop();
     }
 
     private int freeId() {
         for (int id = 0; id < maxPlayers; id++) {
             boolean used = false;
-            for (ClientHandler c : clients) if (c.id == id) used = true;
+            for (NetworkingBase.Peer c : net.peers()) if (c.id == id) used = true;
             if (!used) return id;
         }
         return -1;
@@ -73,80 +49,60 @@ public class GameServer {
 
     private List<Integer> connectedIds() {
         List<Integer> ids = new ArrayList<>();
-        for (ClientHandler c : clients) ids.add(c.id);
+        for (NetworkingBase.Peer c : net.peers()) ids.add(c.id);
         return ids;
     }
 
-    // This is the other side of the switch/case statement from GameManager, handles the "commands" for each client and sends to console for debugging
+    private String currentTurnMessage() {
+        int cur = turnManager.getCurrentPlayer();
+        return cur == -1 ? null : NetworkingBase.turn(cur, turnManager.remainingMillis());
+    }
+
+    // This is the other side of the switch/case statement from GameManager, handles the "commands" for each client
     // This is also where the Lock happens
-    private void handleLine(ClientHandler from, String line) {
-        String[] p = line.split(" ");
-        if (p.length != 2 || !p[0].equals("MOVE")) return;
-        int tile;
-        try { tile = Integer.parseInt(p[1]); } catch (NumberFormatException e) { return; }
+    private void handleMove(NetworkingBase.Peer from, String line) {
+        OptionalInt parsed = NetworkingBase.parseMove(line);
+        if (!parsed.isPresent()) return;
+        int tile = parsed.getAsInt();
         if (tile < 1 || tile > tileCount) return;
         synchronized (lock) {
             if (!turnManager.isCurrent(from.id)) return;
             lastTile.put(from.id, tile);
-            broadcast("MOVED " + from.id + " " + tile);
+            net.broadcast(NetworkingBase.moved(from.id, tile));
             turnManager.endTurn(from.id);
         }
     }
 
-    // Gets IP Address(s) for clients to type in, obviously needs to be communicated in person as it's posted in the title
-    public static List<String> getLanAddresses() {
-        List<String> result = new ArrayList<>();
-        try {
-            for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
-                if (!ni.isUp() || ni.isLoopback()) continue;
-                for (InetAddress a : Collections.list(ni.getInetAddresses()))
-                    if (a instanceof Inet4Address) result.add(a.getHostAddress());
+    private class Handler implements NetworkingBase.Server.Listener {
+        @Override
+        public void onConnect(NetworkingBase.Peer peer) {
+            synchronized (lock) {
+                int newId = freeId();
+                if (newId < 0) {
+                    peer.send(NetworkingBase.FULL);
+                    peer.close();
+                    return;
+                }
+                peer.id = newId;
+                peer.send(NetworkingBase.welcome(newId));
+                if (boardMessage != null) peer.send(boardMessage);
+                for (Map.Entry<Integer, Integer> e : lastTile.entrySet())
+                    peer.send(NetworkingBase.moved(e.getKey(), e.getValue()));
+                net.register(peer);
+                turnManager.refresh();
+                String turn = currentTurnMessage();
+                if (turn != null) peer.send(turn);
             }
-        } catch (SocketException ignored) {}
-        return result;
-    }
-
-    private class ClientHandler implements Runnable {
-        private final Socket socket;
-        private final PrintWriter out;
-        private final BufferedReader in;
-        volatile int id = -1;
-
-        ClientHandler(Socket socket) throws IOException {
-            this.socket = socket;
-            this.out = new PrintWriter(new BufferedWriter(
-                new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8)), true);
-            this.in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
         }
 
-        void send(String msg) { out.println(msg); }
-
-        void close() { try { socket.close(); } catch (IOException ignored) {} }
+        @Override
+        public void onLine(NetworkingBase.Peer peer, String line) {
+            handleMove(peer, line);
+        }
 
         @Override
-        public void run() {
-            try {
-                synchronized (lock) {
-                    int newId = freeId();
-                    if (newId < 0) { send("FULL"); return; }
-                    id = newId;
-                    send("WELCOME " + id);
-                    if (boardMessage != null) send(boardMessage);
-                    for (Map.Entry<Integer, Integer> e : lastTile.entrySet())
-                        send("MOVED " + e.getKey() + " " + e.getValue());
-                    clients.add(this);
-                    turnManager.refresh();
-                    String turn = turnManager.currentTurnMessage();
-                    if (turn != null) send(turn);
-                }
-                String line;
-                while ((line = in.readLine()) != null) handleLine(this, line);
-            } catch (IOException ignored) {
-            } finally {
-                clients.remove(this);
-                synchronized (lock) { turnManager.refresh(); }
-                close();
-            }
+        public void onDisconnect(NetworkingBase.Peer peer) {
+            synchronized (lock) { turnManager.refresh(); }
         }
     }
 }

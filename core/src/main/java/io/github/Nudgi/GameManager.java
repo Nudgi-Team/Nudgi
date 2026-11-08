@@ -20,6 +20,7 @@ import com.badlogic.gdx.utils.Disposable;
 
 import io.github.Nudgi.network.GameClient;
 import io.github.Nudgi.network.GameServer;
+import io.github.Nudgi.network.NetworkingBase;
 
 public class GameManager implements Disposable {
     private Player[] players = new Player[4];
@@ -40,6 +41,32 @@ public class GameManager implements Disposable {
     private long turnDeadline;
     private boolean typing;
     private final StringBuilder ipBuffer = new StringBuilder();
+
+    // What to do when the server tells us something (decoding lives in NetworkingBase)
+    private final NetworkingBase.ServerMessageHandler serverMessages = new NetworkingBase.ServerMessageHandler() {
+        @Override public void onWelcome(int id) {
+            myId = id;
+            status = "You are player " + myId + hostInfo;
+        }
+        @Override public void onBoard(int[] paths) {
+            board.applyAllPaths(paths);
+        }
+        @Override public void onMoved(int playerId, int tile) {
+            Player player = findPlayerByID(playerId);
+            Board.TileInfo target = board.fetchTile(tile);
+            applyMove(player, target.pos);
+        }
+        @Override public void onTurn(int playerId, long millis) {
+            turnId = playerId;
+            turnDeadline = System.currentTimeMillis() + millis;
+            if (selectedPlayer != null) resetTurnContext();
+        }
+        @Override public void onFull() {
+            rejected = true;
+            started = false;
+            status = "Game room is full";
+        }
+    };
 
     public GameManager(Board board, Stage stage) {
         this(board, stage, r -> Gdx.app.postRunnable(r));
@@ -112,10 +139,11 @@ public class GameManager implements Disposable {
         started = true;
         try {
             Vector2 size = board.getGridSize();
-            server = new GameServer(GameServer.DEFAULT_PORT, players.length, encodeBoard(), (int) (size.x * size.y));
+            server = new GameServer(GameServer.DEFAULT_PORT, players.length,
+                NetworkingBase.board(board.getAllPaths()), (int) (size.x * size.y));
             server.start();
-            hostInfo = " - hosting on " + GameServer.getLanAddresses();
-            System.out.println("Hosting. Others join with one of: " + GameServer.getLanAddresses());
+            hostInfo = " - hosting on " + NetworkingBase.getLanAddresses();
+            System.out.println("Hosting. Others join with one of: " + NetworkingBase.getLanAddresses());
             connectTo("127.0.0.1"); // Lets the game start hosted "offline" so the game doesn't just freeze
         } catch (IOException e) {
             status = "Host failed: " + e.getMessage();
@@ -187,15 +215,12 @@ public class GameManager implements Disposable {
         GameClient c = new GameClient(
             line -> mainThread.accept(() -> handleMessage(line)),
             () -> mainThread.accept(this::onDisconnected));
-        new Thread(() -> {
-            try {
-                c.connect(host, GameServer.DEFAULT_PORT);
-                client = c;
-            } catch (IOException e) {
+        c.connectAsync(host,
+            () -> client = c,
+            e -> {
                 status = "Could not connect: " + e.getMessage();
                 started = false;
-            }
-        }, "GameClient-connect").start();
+            });
     }
 
     private void onDisconnected() {
@@ -213,47 +238,11 @@ public class GameManager implements Disposable {
         return networked() && turnId == myId;
     }
 
-    // Throw it into a string and decode on the other side
-    // Not as efficient as communicating only changes but prevents partial desyncs
-    private String encodeBoard() {
-        StringBuilder sb = new StringBuilder("BOARD");
-        for (int p : board.getAllPaths()) sb.append(' ').append(p);
-        return sb.toString();
-    }
-
-    // Simple communication dictionary for communicating between server and clients
+    // Entry point for every line from the server; NetworkingBase decodes, serverMessages reacts
     void handleMessage(String line) {
         if (players == null) return;
-        String[] p = line.split(" ");
         try {
-            switch (p[0]) {
-                case "WELCOME":
-                    myId = Integer.parseInt(p[1]);
-                    status = "You are player " + myId + hostInfo;
-                    break;
-                case "BOARD": {
-                    int[] paths = new int[p.length - 1];
-                    for (int i = 0; i < paths.length; i++) paths[i] = Integer.parseInt(p[i + 1]);
-                    board.applyAllPaths(paths);
-                    break;
-                }
-                case "MOVED": {
-                    Player player = findPlayerByID(Integer.parseInt(p[1]));
-                    Board.TileInfo target = board.fetchTile(Integer.parseInt(p[2]));
-                    applyMove(player, target.pos);
-                    break;
-                }
-                case "TURN":
-                    turnId = Integer.parseInt(p[1]);
-                    turnDeadline = System.currentTimeMillis() + Long.parseLong(p[2]);
-                    if (selectedPlayer != null) resetTurnContext();
-                    break;
-                case "FULL":
-                    rejected = true;
-                    started = false;
-                    status = "Game room is full";
-                    break;
-            }
+            NetworkingBase.dispatchServerMessage(line, serverMessages);
         } catch (RuntimeException e) {
             System.err.println("Bad message from server: " + line + " (" + e + ")");
         }
@@ -319,7 +308,7 @@ public class GameManager implements Disposable {
         if (target.tile.isHighlighted()) {
             if (!target.tile.containsPlayer(selectedPlayer)) {
                 if (started) {
-                    if (networked()) client.send("MOVE " + tileID);
+                    if (networked()) client.sendMove(tileID);
                     resetTurnContext();
                 } else {
                     movePlayer(selectedPlayer, target.pos);

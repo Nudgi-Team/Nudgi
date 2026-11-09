@@ -22,7 +22,7 @@ public class GameServer implements MessageHandler {
     private ServerSocket serverSocket;
     private volatile boolean running;
     private boolean gameStarted = false;
-    
+
     // Standard server attributes
     public GameServer(int port, int maxPlayers, BoardMessage boardMessage, int tileCount) {
         this.port = port;

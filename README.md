@@ -9,7 +9,7 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 - Current cycle: 2
 - Cycle Intent: Players can race through a simplified dungeon, using powerups and shifting walls to escape with their treasure before their opponents.
 
-## [Cycle Presentation (link)](https://docs.google.com/presentation/d/1hyAWfxods5hodeF6vvC9RdubzZMBYmKhqUuFE6TPMXo/edit?slide=id.h28d4c742b04a9950_0_40#slide=id.h28d4c742b04a9950_0_40 "Cycle Presentation")
+## [Cycle Presentation (link)](https://docs.google.com/presentation/d/16nL5_TWKyJVXPZlLD3vKxUxaGqW_JQ3aLnDtUZslrlQ/edit?slide=id.p#slide=id.p "Cycle Presentation")
 
 ## [General planning (link)](https://docs.google.com/document/d/1OdQo34TRY2Hrxp1SSklVcMOJ-Jqr4Vcy3ZOWPZyE4w0/edit?tab=t.0 "Planning document")
 

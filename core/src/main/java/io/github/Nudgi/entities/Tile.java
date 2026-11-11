@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Scaling;
 
 import io.github.Nudgi.Direction;
@@ -12,15 +13,15 @@ import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Tile extends Entity<Integer, Stack> {
-    public final int tileID;
-
     private static final Texture highlight = new Texture("highlight.png");
 
-    private Texture sprite = new Texture("EmptyTile.png");
+    public final int tileID;
+
+    private volatile Texture sprite = new Texture("EmptyTile.png");
     private int paths = 0;
     private int rotation = 1;
     private final Image highlightedImage = new Image(highlight);
-    private final TileImage tileImage;
+    private final Image tileImage;
     private final Stack tileGraphics;
     private ArrayList<Player> players = new ArrayList<>();
 
@@ -36,7 +37,7 @@ public class Tile extends Entity<Integer, Stack> {
         paths |= west ? WEST:0;
 
         setSprite(Integer.bitCount(paths));
-        tileImage = new TileImage(sprite);
+        tileImage = new Image(sprite);
         graphicsInit();
     }
 
@@ -45,11 +46,11 @@ public class Tile extends Entity<Integer, Stack> {
         this.tileID = tileID;
         tileGraphics = getActor();
         generatePaths();
-        tileImage = new TileImage(sprite);
+        tileImage = new Image(sprite);
         graphicsInit();
     }
 
-    
+
     private void graphicsInit() {
         tileGraphics.add(tileImage);
         tileGraphics.add(highlightedImage);
@@ -98,7 +99,9 @@ public class Tile extends Entity<Integer, Stack> {
                 }
                 break;
             case 4: sprite = new Texture("FourWayTile.png");break;
-            default: break;
+            default: 
+                sprite = new Texture("EmptyTile.png");
+                break;
         }
     }
 
@@ -125,6 +128,19 @@ public class Tile extends Entity<Integer, Stack> {
         return hasPath(dir.mask());
     }
 
+    public int getPaths() {
+        return paths;
+    }
+
+    public void setPaths(int newPaths) {
+        if (newPaths == paths) return;
+        paths = newPaths;
+        rotation = 1; // same default a freshly built tile starts with
+        setSprite(Integer.bitCount(paths));
+        tileImage.setDrawable(new TextureRegionDrawable(sprite));
+        tileImage.setRotation(rotation * 90);
+    }
+
     public ArrayList<Player> getPlayersOnTile() {
         return new ArrayList<>(players);
     }
@@ -135,10 +151,12 @@ public class Tile extends Entity<Integer, Stack> {
 
     public void addPlayer(Player p) {
         players.add(p);
+        tileGraphics.addActor(p.getActor());
     }
 
     public void removePlayer(Player p) {
         players.remove(p);
+        tileGraphics.removeActor(p.getActor());
     }
 
     public boolean isHighlighted() {
@@ -166,25 +184,5 @@ public class Tile extends Entity<Integer, Stack> {
     @Override 
     public void setPosition(Vector2 to) {
         super.setPosition(to);
-        for (Player player: players) {
-            player.setPosition(to);
-        }
-    }
-
-
-    private class TileImage extends Image {
-        public TileImage(Texture t) {
-            super(t);
-        }
-
-        @Override 
-        protected void sizeChanged() {
-            tileGraphics.setSize(this.getWidth(), this.getHeight());
-        }
-
-        @Override
-        protected void scaleChanged() {
-            tileGraphics.setScale(this.getScaleX(), this.getScaleY());
-        }
     }
 }

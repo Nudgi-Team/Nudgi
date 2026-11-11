@@ -1,0 +1,30 @@
+Client Side:
+Test 1 - Input Off Turn:
+Action: Any action on client
+Expected:
+    Input is discarded
+    Nothing happens
+
+Test 2 - Input On Turn:
+Action: Any action on client
+Expected:
+    Input is accepted
+    Correct event occurs based on input
+
+
+
+Server Side:
+Test 3 - Only One Player Plays at a Time:
+Action: Turn switch
+Expected:
+    Original player not able to move
+    Next player selected to move
+    This player actions are processed
+
+Test 4 - Player Skipping:
+Action: Turn switch but the next player is not in the game
+Expected:
+    Player skipped
+    Switch turns again
+
+

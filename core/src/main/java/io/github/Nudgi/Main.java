@@ -13,14 +13,14 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 public class Main extends ApplicationAdapter {
     private Board board;
     private GameManager game;
-    private Stage uiStage;
+    private Stage gameStage;
     private Viewport viewport;
 
     @Override
     public void create() {
-        uiStage = new Stage();
+        gameStage = new Stage();
 
-        int marginSize = 42;
+        int marginSize = 90;
         Vector2 windowSize = new Vector2(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         float boardSize = Math.min(windowSize.x, windowSize.y) - marginSize*2;
 
@@ -28,10 +28,10 @@ public class Main extends ApplicationAdapter {
         camera.setToOrtho(false);
 
         viewport = new FitViewport(windowSize.x, windowSize.y, camera);
-        uiStage.setViewport(viewport);
-        board = new Board(new Vector2(windowSize.x/2-boardSize/2,windowSize.y/2-boardSize/2), boardSize, new Vector2(9,9), uiStage);
-        game = new GameManager(board, uiStage);
-        Gdx.input.setInputProcessor(uiStage);
+        gameStage.setViewport(viewport);
+        board = new Board(new Vector2(windowSize.x/2-boardSize/2,windowSize.y/2-boardSize/2), boardSize, new Vector2(9,9));
+        game = new GameManager(board, gameStage);
+        Gdx.input.setInputProcessor(gameStage);
     }
 
     @Override 
@@ -42,14 +42,15 @@ public class Main extends ApplicationAdapter {
     @Override
     public void render() {
         ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
-        uiStage.getViewport().apply();
-        uiStage.act();
-        uiStage.draw();
+        game.update();
+        gameStage.getViewport().apply();
+        gameStage.act();
+        gameStage.draw();
     }
 
     @Override
     public void dispose() {
         game.dispose();
-        uiStage.dispose();
+        gameStage.dispose();
     }
 }

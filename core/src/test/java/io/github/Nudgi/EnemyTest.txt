@@ -1,0 +1,17 @@
+Test 1: Enemies must actually spawn in when the game starts.
+
+Test 2: After every player has moved, the enemy must make a move. Just like for players, 
+staying put is permitted, although they should try to move when possible.
+
+Test 3: After either a player or enemy moves, if an enemy is on the same tile
+as a Player - that enemy must kill that player.
+
+Test 4: When a player is killed, they must teleport to a random tile, 
+EXCEPT for a tile with no paths on it.
+
+Test 5: There should be a general bias toward the center of the board
+when spawning in enemies, so as to allow players some breathing room
+at the beginning of the game.
+
+Test 6: Enemies must move with the board, and generally should not be able to move
+through walls (unless explicitly documented as a capability).

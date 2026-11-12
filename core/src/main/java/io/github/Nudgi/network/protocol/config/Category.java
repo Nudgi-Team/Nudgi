@@ -20,6 +20,8 @@ public enum Category {
     TURN (TurnMessage.class),
     STEP (StepMessage.class),
     START (StartNotification.class),
+    TREASURE (TreasureMessage.class),
+    TREASURE_INIT (TreasureInitMessage.class),
     NEW_PLAYER (NewPlayerMessage.class);
 
     private final Class<? extends Message> messageType;

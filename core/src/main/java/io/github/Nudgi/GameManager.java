@@ -16,6 +16,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Disposable;
@@ -33,8 +34,10 @@ import io.github.Nudgi.ui.UIManager;
 import io.github.Nudgi.ui.UIService;
 import io.github.Nudgi.ui.stage.StageManager;
 import io.github.Nudgi.ui.stage.StageManager.Mode;
-import io.github.Nudgi.network.protocol.*;
 
+import io.github.Nudgi.network.protocol.*;
+import io.github.Nudgi.network.protocol.Message.MessageDeserializationException;
+import io.github.Nudgi.network.protocol.TreasureMessage.Delta;
 
 public class GameManager implements Disposable, MessageHandler {
     private static final int TREASURES_PER_PLAYER = TreasureManager.TREASURE_COUNT / PlayerManager.MAX_PLAYERS;
@@ -58,7 +61,7 @@ public class GameManager implements Disposable, MessageHandler {
     private boolean devMode = false;
     private Consumer<Message> dispatcher;
     private Label lobbyLabel = UIService.createLabel("See instructions above.");
-    private Image lobbyPointer = new Image(new Texture("EmptyTile.png"));
+    private Image lobbyPointer = new Image(new Texture("Arrow.png"));
     private final Stage stage;
     
     public GameManager(Board board) {
@@ -126,18 +129,9 @@ public class GameManager implements Disposable, MessageHandler {
         connectTo(hostAddress);
     }
 
-    private Vector2 getBoardCornerPos(Corner corner) {
-        return board.getGridSize().scl(corner.vector()).sub(corner.vector());
-    }
-
     private void beginDevMode() {
         devMode = true;
         host();
-        startGame();
-    }
-
-    private boolean isHost() {
-        return server != null;
     }
 
     private void startGame() {
@@ -145,7 +139,6 @@ public class GameManager implements Disposable, MessageHandler {
         playerSetup();
         stageBoard();
         uiInit();
-        assignTreasuresToPlayers();
         placeTreasuresOnBoard();
     }
 
@@ -156,15 +149,11 @@ public class GameManager implements Disposable, MessageHandler {
             // Vector2 worldPos = board.toWorldPos(boardCornerPos);
             // float tileSize = board.getTileSize();
             
-            PlayerManager.create(isHost(), true);
             // TODO move this to BoardUI
             // players[i].setPosition(worldPos);
             // players[i].setSizeSquare(tileSize*0.9f);
             // players[i].addListener(this::handlePlayerClick);
 
-            // TODO this logic belongs in a PlayerAdded event
-            // winningPositions[i] = getBoardCornerPos(basePos[i].opposite());
-            // board.initializePlayer(players[i], boardCornerPos);
     }
 
     public void stageBoard() {
@@ -196,18 +185,12 @@ public class GameManager implements Disposable, MessageHandler {
         UIService.centerWidget(turnStepLabel, true, false);
     }
 
-    private void assignTreasuresToPlayers() {
-        for (Player p: PlayerManager.getPlayers()) {
-            int[] assignments = TreasureManager.randomTreasures(TREASURES_PER_PLAYER);
-            p.assignTreasures(assignments);
-        }
-    }
 
     private void placeTreasuresOnBoard() {
-        Tile[] treasureSpots = board.randomTiles(TreasureManager.TREASURE_COUNT, true);
+        Tile[] treasureSpots = board.randomTilesWithPaths(TreasureManager.TREASURE_COUNT, true);
         for (int i = 0; i < treasureSpots.length; i++) {
             treasureSpots[i].addTreasure(i);
-            Vector2 pos = board.toWorldPos(board.fetchTile(treasureSpots[i].tileID).pos);
+            Vector2 pos = board.toWorldPos(board.fetchTile(treasureSpots[i].tileID).pos());
             TreasureManager.TREASURES[i].setPosition(pos.x, pos.y);
         }
         TreasureManager.addLabelsToStage(STAGE);
@@ -296,6 +279,9 @@ public class GameManager implements Disposable, MessageHandler {
     public void onWelcome(int from, WelcomeMessage m) {
         myId = m.getNewID();
         status = "You are player " + getPlayerDisplayID(myId) + hostInfo;
+        if (server != null) {
+            ui.lobbyWaitingMode();
+        }
     }
 
     @Override 
@@ -306,9 +292,10 @@ public class GameManager implements Disposable, MessageHandler {
 
     @Override 
     public void onPlayerMoved(int from, PlayerMovedMessage m) {
-        Player player = findPlayerByID(m.getPlayerID());
+        Player player = PlayerManager.fetchPlayer(m.getPlayerID());
         TileInfo target = board.fetchTile(m.getTileID());
         applyMove(player, target.pos());
+        clearHighlights();
         generateRandomMovement();
         if (playerWon(player) && myId == player.getID().intValue()) {
             client.send(new WinMessage(player.getID()));
@@ -318,7 +305,7 @@ public class GameManager implements Disposable, MessageHandler {
     @Override 
     public void onTurn(int from, TurnMessage m) {
         turnId = m.getTurnPlayerID();
-        board.forEachTile((pos, tile) -> tile.setHighlighted(false));
+        clearHighlights();
     }
 
     @Override 
@@ -330,7 +317,7 @@ public class GameManager implements Disposable, MessageHandler {
 
     @Override  
     public void onWin(int from, WinMessage m) {
-        Player player = findPlayerByID(m.getWinnerID());
+        Player player = PlayerManager.fetchPlayer(m.getWinnerID());
         endGame(player + " has won!");
     }
 
@@ -353,6 +340,28 @@ public class GameManager implements Disposable, MessageHandler {
         startGame();
     }
 
+    @Override 
+    public void onNewPlayer(int from, NewPlayerMessage m) {
+        int newPlayerID = m.getNewPlayerID();
+        Player newPlayer = PlayerManager.create(false, newPlayerID == myId, newPlayerID);
+        board.initializePlayer(newPlayer);
+    }
+
+    @Override 
+    public void onTreasure(int from, TreasureMessage m) {
+        int collectorId = m.getCollectorID();
+        Player targetPlayer = PlayerManager.fetchPlayer(collectorId);
+        Vector2 playerPos = board.getPlayerPosition(targetPlayer);
+        Tile playerTile = board.fetchTile(playerPos);
+        targetPlayer.collectTreasure(playerTile.getTreasure().get());
+    }
+
+    public void onTreasureInit(int from, TreasureInitMessage m) {
+        int targetPlayer = m.getPlayerID();
+        int[] treasures = m.getTreasures();
+        PlayerManager.fetchPlayer(targetPlayer).assignTreasures(treasures);
+    }
+
     // Simple communication dictionary for communicating between server and clients
     // Client receiver
     private void handleMessage(String line) {
@@ -372,7 +381,7 @@ public class GameManager implements Disposable, MessageHandler {
     private void generateRandomMovement() {
         int currentMovement = ThreadLocalRandom.current().nextInt(1, 7);
 
-        Set<Vector2> visited = board.pathFind(board.getPlayerPosition(PlayerManager.fetchPlayer(myId)), currentMovement);
+        Set<Vector2> visited = board.pathFind(board.getPlayerPosition(PlayerManager.getYourself()), currentMovement);
         System.out.println("Targets:");
         for (Vector2 moveEligible: visited) {
             System.out.println(moveEligible);
@@ -417,6 +426,13 @@ public class GameManager implements Disposable, MessageHandler {
         if (!target.tile().isHighlighted()) { return; }
 
         client.send(new PlayerMovedMessage(tileID));
+        
+        Player player = PlayerManager.getYourself();
+        target.tile().getTreasure().ifPresent(value -> {
+            if (player.canCollectTreasure(value)) {
+                client.send(new TreasureMessage(myId, Delta.COLLECT));
+            }
+        });
     }
 
     private void handleArrowClick(ShiftID sid) {

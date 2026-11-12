@@ -295,13 +295,12 @@ public class Board {
         return tiles;
     }
 
-    public Tile[] randomTiles(int amount, boolean excludeStartingTiles) {
+    public Tile[] randomTilesWithPaths(int amount, boolean excludeStartingTiles) {
         List<Tile> available = flattened();
-        
         Set<Tile> forbiddenTiles = (excludeStartingTiles) ? new HashSet<>(Arrays.asList(getCorners())) : new HashSet<>();
-        List<Tile> zeroPaths = searchAll(info -> info.tile().getPathCount() == 0).stream()
-            .map(TileInfo::tile)
-            .toList();
+
+        List<TileInfo> zeroInfos = searchAll(info -> info.tile().getPathCount() == 0);
+        final List<Tile> zeroPaths = zeroInfos.stream().map(TileInfo::tile).toList();
 
         forbiddenTiles.addAll(zeroPaths);
         available.removeAll(forbiddenTiles);

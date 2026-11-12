@@ -8,6 +8,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import io.github.Nudgi.MessageHandler;
 import io.github.Nudgi.NetworkController;
+import io.github.Nudgi.TreasureManager;
+import io.github.Nudgi.entities.PlayerManager;
 import io.github.Nudgi.network.protocol.*;
 import io.github.Nudgi.network.protocol.Message.MessageDeserializationException;
 
@@ -108,7 +110,12 @@ public class GameServer implements MessageHandler {
     }
 
     @Override 
-    public void onStart(int from) { // Allows host to start the game in the future
+    public void onTreasure(int from, TreasureMessage m) {
+        broadcast(m);
+    }
+
+    @Override 
+    public void onStart(int from) {
         if (from == 0) {
             broadcast(new StartNotification());
             turnManager.refresh();

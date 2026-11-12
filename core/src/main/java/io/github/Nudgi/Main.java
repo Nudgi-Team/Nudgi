@@ -14,8 +14,6 @@ import io.github.Nudgi.ui.stage.StageManager;
 public class Main extends ApplicationAdapter {
     private Board board;
     private GameManager game;
-    private Stage gameStage;
-    private Viewport viewport;
     private NetworkController controller; 
 
     @Override
@@ -26,10 +24,8 @@ public class Main extends ApplicationAdapter {
 
         board = new Board(new Vector2(windowSize.x/2-boardSize/2,windowSize.y/2-boardSize/2), boardSize, new Vector2(9,9));
         game = new GameManager(board);
-        Gdx.input.setInputProcessor(gameStage);
         controller = new NetworkController(game);
         game.setDispatcher(controller::fire);
-        game = new GameManager(board);
         Gdx.input.setInputProcessor(STAGE);
     }
 

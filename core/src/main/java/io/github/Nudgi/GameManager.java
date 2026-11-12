@@ -1,8 +1,8 @@
 package io.github.Nudgi;
 
 
-import static io.github.Nudgi.ui.stage.StageManager.STAGE;
-import static io.github.Nudgi.ui.stage.StageManager.VIEW;
+import static io.github.Nudgi.ui.StageManager.STAGE;
+import static io.github.Nudgi.ui.StageManager.VIEW;
 
 import java.io.IOException;
 import java.util.Set;
@@ -16,7 +16,6 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Disposable;
@@ -29,18 +28,15 @@ import io.github.Nudgi.entities.ShiftArrow.ShiftID;
 import io.github.Nudgi.network.GameClient;
 import io.github.Nudgi.network.GameServer;
 import io.github.Nudgi.network.TurnStep;
-import io.github.Nudgi.network.protocol.BoardMessage;
+import io.github.Nudgi.ui.StageManager;
 import io.github.Nudgi.ui.UIManager;
 import io.github.Nudgi.ui.UIService;
-import io.github.Nudgi.ui.stage.StageManager;
-import io.github.Nudgi.ui.stage.StageManager.Mode;
-
+import io.github.Nudgi.ui.StageManager.Mode;
 import io.github.Nudgi.network.protocol.*;
 import io.github.Nudgi.network.protocol.Message.MessageDeserializationException;
 import io.github.Nudgi.network.protocol.TreasureMessage.Delta;
 
 public class GameManager implements Disposable, MessageHandler {
-    private static final int TREASURES_PER_PLAYER = TreasureManager.TREASURE_COUNT / PlayerManager.MAX_PLAYERS;
     private final Board board;
     private final Vector2[] winningPositions = new Vector2[4];
     private final Consumer<Runnable> mainThread;   // runs something on the render thread
@@ -60,9 +56,7 @@ public class GameManager implements Disposable, MessageHandler {
     private final Label turnStepLabel = UIService.createLabel(null);
     private boolean devMode = false;
     private Consumer<Message> dispatcher;
-    private Label lobbyLabel = UIService.createLabel("See instructions above.");
-    private Image lobbyPointer = new Image(new Texture("Arrow.png"));
-    private final Stage stage;
+    private UIManager ui = new UIManager();
     
     public GameManager(Board board) {
         this(board, r -> Gdx.app.postRunnable(r));
@@ -77,7 +71,7 @@ public class GameManager implements Disposable, MessageHandler {
             @Override public boolean keyDown(InputEvent event, int keycode) { return handleKeyDown(keycode); }
         });
         StageManager.setStageMode(Mode.LOBBY);
-        UIManager.onDevMode(this::beginDevMode);
+        ui.onDevMode(this::beginDevMode);
     }
 
     public void update() {
@@ -132,11 +126,10 @@ public class GameManager implements Disposable, MessageHandler {
     private void beginDevMode() {
         devMode = true;
         host();
-        onStart(0);
+        status = "Developer Mode";
     }
 
     private void startGame() {
-        status = "";
         playerSetup();
         stageBoard();
         uiInit();
@@ -251,6 +244,9 @@ public class GameManager implements Disposable, MessageHandler {
             try {
                 c.connect(host, GameServer.DEFAULT_PORT);
                 client = c;
+                if (devMode) {
+                    client.send(new StartNotification());
+                }
             } catch (IOException e) {
                 status = "Could not connect: " + e.getMessage();
                 started = false;
@@ -352,9 +348,7 @@ public class GameManager implements Disposable, MessageHandler {
     public void onTreasure(int from, TreasureMessage m) {
         int collectorId = m.getCollectorID();
         Player targetPlayer = PlayerManager.fetchPlayer(collectorId);
-        Vector2 playerPos = board.getPlayerPosition(targetPlayer);
-        Tile playerTile = board.fetchTile(playerPos);
-        targetPlayer.collectTreasure(playerTile.getTreasure().get());
+        targetPlayer.collectTreasure();
     }
 
     public void onTreasureInit(int from, TreasureInitMessage m) {
@@ -368,6 +362,7 @@ public class GameManager implements Disposable, MessageHandler {
     private void handleMessage(String line) {
         try {
             Message msg = Message.deserialize(line);
+            System.out.println("Message received of type " + msg.getCategory());
             dispatcher.accept(msg);
         }
         catch (MessageDeserializationException e) {
@@ -402,14 +397,12 @@ public class GameManager implements Disposable, MessageHandler {
     private void handleTurnStep(TurnStep newStep) {
         System.out.println("STEP: " + newStep.name());
         switch(newStep) {
-            case SHIFTING: {
+            case SHIFTING -> {
                 // In the future, you could put an animation for the arrows here
                 // to indicate that they can be clicked
-                break;
             }
-            case MOVING: {
+            case MOVING -> {
                 generateRandomMovement();
-                break;
             }
         }
     }

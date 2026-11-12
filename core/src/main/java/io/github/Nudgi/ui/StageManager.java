@@ -1,4 +1,4 @@
-package io.github.Nudgi.ui.stage;
+package io.github.Nudgi.ui;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +47,7 @@ public final class StageManager {
     /**
      * Registers a listener that runs when the Mode is switched. 
      * The mode switched into is passed in as an argument to the provided method.
-     * The listener is also ran immediately with the current mode, if one is active.
+     * The listener is also ran immediately with the current mode, if a mode is active.
      * @param listener the method to be called.
      */
     public static void onModeChanged(Consumer<Mode> listener) {

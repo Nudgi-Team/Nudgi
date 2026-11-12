@@ -1,14 +1,14 @@
 package io.github.Nudgi;
 
-import static io.github.Nudgi.ui.stage.StageManager.STAGE;
-import static io.github.Nudgi.ui.stage.StageManager.VIEW;
+import static io.github.Nudgi.ui.StageManager.STAGE;
+import static io.github.Nudgi.ui.StageManager.VIEW;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.ScreenUtils;
 
-import io.github.Nudgi.ui.stage.StageManager;
+import io.github.Nudgi.ui.StageManager;
 
 /** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class Main extends ApplicationAdapter {

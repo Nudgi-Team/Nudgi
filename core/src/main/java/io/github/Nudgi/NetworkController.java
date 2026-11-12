@@ -69,9 +69,11 @@ public class NetworkController {
             case FullNotification _     -> handler.onFull(id);
             case StartNotification _    -> handler.onStart(id);
             case StepMessage m          -> handler.onStep(id, m);
+            case TreasureMessage m      -> handler.onTreasure(id, m);
             case TurnMessage m          -> handler.onTurn(id, m);
             case WelcomeMessage m       -> handler.onWelcome(id, m);
             case WinMessage m           -> handler.onWin(id, m);
+            case TreasureInitMessage m  -> handler.onTreasureInit(id, m);
             case NewPlayerMessage m     -> handler.onNewPlayer(id, m);
         }
     }

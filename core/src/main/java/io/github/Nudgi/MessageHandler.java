@@ -16,9 +16,11 @@ public interface MessageHandler {
     default void onStart(int from) {}
     default void onShift(int from, ShiftMessage msg) {}
     default void onStep(int from, StepMessage msg) {}
+    default void onTreasure(int from, TreasureMessage msg) {}
     default void onTurn(int from, TurnMessage msg) {}
     default void onWelcome(int from, WelcomeMessage msg) {}
     default void onWin(int from, WinMessage msg) {}
     default void onBoard(int from, BoardMessage msg) {}
+    default void onTreasureInit(int from, TreasureInitMessage msg) {}
     default void onNewPlayer(int from, NewPlayerMessage msg) {}
 }

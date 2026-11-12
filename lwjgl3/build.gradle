@@ -22,11 +22,6 @@ sourceSets.main.resources.srcDirs += [ rootProject.file('assets').path ]
 application.mainClass = 'io.github.Nudgi.lwjgl3.Lwjgl3Launcher'
 application.applicationName = appName
 eclipse.project.name = appName + '-lwjgl3'
-java.sourceCompatibility = 25
-java.targetCompatibility = 25
-if (JavaVersion.current().isJava9Compatible()) {
-        compileJava.options.release.set(25)
-}
 
 dependencies {
   implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"

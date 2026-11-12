@@ -15,6 +15,7 @@ import io.github.Nudgi.network.protocol.Message.MessageDeserializationException;
 
 public class GameServer implements MessageHandler {
     public static final int DEFAULT_PORT = 5000;
+    private static final int TREASURES_PER_PLAYER = TreasureManager.TREASURE_COUNT / PlayerManager.MAX_PLAYERS;
 
     private final int port, maxPlayers, tileCount;
     private final BoardMessage boardMessage;
@@ -164,16 +165,11 @@ public class GameServer implements MessageHandler {
                     broadcast(new NewPlayerMessage(id));
                     if (boardMessage != null) send(boardMessage);
                     clients.add(this);
-                    if (clients.size() >= 2) { // Don't start until 2+ players
-                        if (!gameStarted) { // On first start, notify both host and the other player 
-                            gameStarted = true;
-                            broadcast(new StartNotification());
-                        }
-                        else { // Afterwards, notify only new players entering
-                            send(new StartNotification());
-                        }
-                        turnManager.refresh();
-                    }
+
+                    int[] assignments = TreasureManager.randomTreasures(TREASURES_PER_PLAYER);
+
+                    broadcast(new NewPlayerMessage(id));
+                    broadcast(new TreasureInitMessage(assignments, id));
                     controller = new NetworkController(GameServer.this, id);
                     controller.synchronize(lock); 
                 }

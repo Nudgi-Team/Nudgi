@@ -204,7 +204,7 @@ public class Board {
 
     public Vector2 getPlayerPosition(Player p) {
         return search(info -> info.tile().containsPlayer(p))
-            .orElseThrow(IllegalArgumentException::new).pos();
+            .orElseThrow(() -> new IllegalArgumentException("For input player " + p.playerID)).pos();
     }
 
     /**
@@ -227,10 +227,11 @@ public class Board {
 
     /**
      * Must be called exactly once for each player upon starting the game.
-     * @param p the player to place onto the board.
-     * @param startingLocation where the player will start.
+     * This places the Player on a location dependent on their starting Corner.
+     * @param p the player to place onto the board, onto their starting Corner..
      */
-    public void initializePlayer(Player p, Vector2 startingLocation) {
+    public void initializePlayer(Player p) {
+        Vector2 startingLocation = cornerToGrid(p.getStartingCorner());
         Tile start = fetchTile(startingLocation);
         start.addPlayer(p);
     }

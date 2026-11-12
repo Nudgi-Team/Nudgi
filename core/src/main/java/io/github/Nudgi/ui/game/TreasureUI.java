@@ -44,7 +44,7 @@ public class TreasureUI {
         }
 
         void update() {
-            int current = player.numTreasuresLeft();
+            int current = player.getTreasureCount();
             int top = player.topTreasure().orElse(Integer.MIN_VALUE);
             baseLabel.setText("Left: " + current + "\nTop: " + ((top == Integer.MIN_VALUE) ? "None" : top));
         }

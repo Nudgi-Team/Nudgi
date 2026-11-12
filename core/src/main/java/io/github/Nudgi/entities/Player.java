@@ -1,9 +1,10 @@
 package io.github.Nudgi.entities;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
-import java.util.Stack;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -26,8 +27,8 @@ public class Player extends Entity<Integer, Image> {
     private final boolean host;
     private final boolean you;
     private final Corner startingCorner;
-    private final Stack<Integer> treasuresToHunt = new Stack<>();
-    private final Stack<Integer> treasuresCollected = new Stack<>();
+    private final Deque<Integer> treasuresToHunt = new ArrayDeque<>();
+    private final Deque<Integer> treasuresCollected = new ArrayDeque<>();
     private final List<Runnable> treasuresChangedListeners = new ArrayList<>();
     
     /**
@@ -77,7 +78,7 @@ public class Player extends Entity<Integer, Image> {
     }
 
 
-    private <T> void moveTop(Stack<T> from, Stack<T> to) {
+    private <T> void moveTop(Deque<T> from, Deque<T> to) {
         to.add(from.pop());
         treasuresChangedListeners.forEach(Runnable::run);
     }
@@ -89,10 +90,19 @@ public class Player extends Entity<Integer, Image> {
      * successfully collected by the player. Always {@code false} if {@code target == null}.
      */
     public boolean collectTreasure(@Null Integer target) {
-        if (treasuresToHunt.empty() || !treasuresToHunt.peek().equals(target)) { return false; }
+        if (!canCollectTreasure(target)) { return false; }
         moveTop(treasuresToHunt, treasuresCollected);
         System.out.println("Treasure collected!");
         return true;
+    }
+
+    /**
+     * Checks to see if the treasure can be collected.
+     * @param target the treasure to check.
+     * @return true if the treasure can be collected. Always {@code false} if {@code target == null}.
+     */
+    public boolean canCollectTreasure(@Null Integer target) {
+        return (!treasuresToHunt.isEmpty() && treasuresToHunt.peek().equals(target));
     }
 
     /**
@@ -100,7 +110,7 @@ public class Player extends Entity<Integer, Image> {
      * @return true if a treasure was lost.
      */
     public boolean loseTreasure() {
-        if (treasuresCollected.empty()) { return false; }
+        if (treasuresCollected.isEmpty()) { return false; }
         moveTop(treasuresCollected, treasuresToHunt);
         return true;
     }
@@ -110,13 +120,13 @@ public class Player extends Entity<Integer, Image> {
      * @return An Optional containing the top treasure for this player, if any; otherwise, an empty Optional.
      */
     public Optional<Integer> topTreasure() {
-        return (treasuresToHunt.empty()) ? Optional.empty() : Optional.of(treasuresToHunt.peek());
+        return (treasuresToHunt.isEmpty()) ? Optional.empty() : Optional.of(treasuresToHunt.peek());
     }
 
     /**
      * Returns the amount of treasures the player has left to hunt.
      */
-    public int numTreasuresLeft() {
+    public int getTreasureCount() {
         return treasuresToHunt.size();
     }
 }

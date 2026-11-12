@@ -6,36 +6,34 @@ import io.github.Nudgi.ui.stage.StageManager;
 import io.github.Nudgi.ui.stage.StageManager.Mode;
 
 
-public final class UIManager {
-    private static LobbyUI lobby;
-    private static TreasureUI treasureUi; 
+public class UIManager {
+    private LobbyUI lobby;
+    private TreasureUI treasureUi; 
 
-    static {
-        StageManager.onModeChanged(UIManager::setMode);
+    public UIManager() {
+        StageManager.onModeChanged(this::setMode);
     }
 
-    private UIManager() {}
-
-    private static void setMode(Mode mode) {
+    private void setMode(Mode mode) {
         switch(mode) {
             case LOBBY: setToLobby(); break;
             case GAME: setToGame(); break;
         }   
     }
 
-    private static void setToLobby() {
+    private void setToLobby() {
         lobby = new LobbyUI();
     }
 
-    private static void setToGame() {
+    private void setToGame() {
         treasureUi = new TreasureUI();
     }
 
-    public static void onDevMode(Runnable... listeners) {
+    public void onDevMode(Runnable... listeners) {
         lobby.onDevMode(listeners);
     }
 
-    public static void lobbyWaitingMode() {
+    public void lobbyWaitingMode() {
         lobby.waitingMode();
     }
 }

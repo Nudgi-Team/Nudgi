@@ -84,16 +84,11 @@ public class Player extends Entity<Integer, Image> {
     }
 
     /**
-     * Attempts to collect the target treasure, succeeding if it matches the player's top treasure card.
-     * @param target the treasure being collected.
-     * @return {@code true} if the treasure was 
-     * successfully collected by the player. Always {@code false} if {@code target == null}.
+     * Collects the top treasure card of this player.
      */
-    public boolean collectTreasure(@Null Integer target) {
-        if (!canCollectTreasure(target)) { return false; }
+    public void collectTreasure() {
         moveTop(treasuresToHunt, treasuresCollected);
         System.out.println("Treasure collected!");
-        return true;
     }
 
     /**

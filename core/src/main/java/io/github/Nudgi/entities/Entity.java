@@ -20,7 +20,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
  * you must add it to a {@code Stage}!
  * @see TrivialEntity
  * @see IdentifyingListener
- * @see io.github.Nudgi.ui.stage.StageManager
+ * @see io.github.Nudgi.ui.StageManager
  */
 public abstract class Entity<T, A extends Actor> {
     private final List<IdentifyingListener<T>> listeners = new ArrayList<>();

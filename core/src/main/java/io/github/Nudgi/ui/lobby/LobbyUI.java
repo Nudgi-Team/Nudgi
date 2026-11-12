@@ -1,6 +1,6 @@
 package io.github.Nudgi.ui.lobby;
 
-import static io.github.Nudgi.ui.stage.StageManager.VIEW;
+import static io.github.Nudgi.ui.StageManager.VIEW;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
@@ -9,8 +9,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 
 import io.github.Nudgi.entities.TrivialEntity;
+import io.github.Nudgi.ui.StageManager;
 import io.github.Nudgi.ui.UIService;
-import io.github.Nudgi.ui.stage.StageManager;
 
 public class LobbyUI {
     private final Label lobbyLabel = UIService.createLabel("See instructions above.");

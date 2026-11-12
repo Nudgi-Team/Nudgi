@@ -1,9 +1,8 @@
 package io.github.Nudgi.ui;
 
+import io.github.Nudgi.ui.StageManager.Mode;
 import io.github.Nudgi.ui.game.TreasureUI;
 import io.github.Nudgi.ui.lobby.LobbyUI;
-import io.github.Nudgi.ui.stage.StageManager;
-import io.github.Nudgi.ui.stage.StageManager.Mode;
 
 
 public class UIManager {

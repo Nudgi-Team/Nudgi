@@ -8,8 +8,8 @@ import com.badlogic.gdx.utils.Align;
 import io.github.Nudgi.Corner;
 import io.github.Nudgi.entities.Player;
 import io.github.Nudgi.entities.PlayerManager;
+import io.github.Nudgi.ui.StageManager;
 import io.github.Nudgi.ui.UIService;
-import io.github.Nudgi.ui.stage.StageManager;
 
 
 public class TreasureUI {

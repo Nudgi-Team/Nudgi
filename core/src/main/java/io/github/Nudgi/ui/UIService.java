@@ -1,6 +1,6 @@
 package io.github.Nudgi.ui;
 
-import static io.github.Nudgi.ui.stage.StageManager.VIEW;
+import static io.github.Nudgi.ui.StageManager.VIEW;
 
 import java.util.function.Consumer;
 

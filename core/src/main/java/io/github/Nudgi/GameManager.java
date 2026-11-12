@@ -27,10 +27,12 @@ import io.github.Nudgi.entities.TrivialEntity;
 import io.github.Nudgi.entities.ShiftArrow.ShiftID;
 import io.github.Nudgi.network.GameClient;
 import io.github.Nudgi.network.GameServer;
-import io.github.Nudgi.network.Message;
 import io.github.Nudgi.network.TurnStep;
 
-public class GameManager implements Disposable {
+import io.github.Nudgi.network.protocol.*;
+import io.github.Nudgi.network.protocol.Message.MessageDeserializationException;
+
+public class GameManager implements Disposable, MessageHandler {
     private static final Map<Vector2, Vector2> BASE_MAPPINGS = new HashMap<>();
     static {
         BASE_MAPPINGS.put(Vector2.Zero, Vector2.One);
@@ -38,8 +40,6 @@ public class GameManager implements Disposable {
         BASE_MAPPINGS.put(Vector2.X, Vector2.Y);
         BASE_MAPPINGS.put(Vector2.Y, Vector2.X);
     }
-
-    private final Stage stage;
     private final Board board;
     private final Vector2[] winningPositions = new Vector2[4];
     private Player[] players = new Player[4];
@@ -58,17 +58,19 @@ public class GameManager implements Disposable {
     private final StringBuilder ipBuffer = new StringBuilder();
     private final Label turnPlayerLabel = UIService.createLabel(null);
     private final Label turnStepLabel = UIService.createLabel(null);
-    private final Label lobbyLabel = UIService.createLabel("See above for instructions.");
-    private final Image lobbyPointer = new Image(new Texture("Arrow.png"));
-
-    public GameManager(Board board, Stage stage) {
+    private boolean devMode = false;
+    private Consumer<Message> dispatcher;
+    private Label lobbyLabel = UIService.createLabel("See instructions above.");
+    private Image lobbyPointer = new Image(new Texture("EmptyTile.png"));
+    private Stage stage;
+    
+    public GameManager(Board board, Stage stage) {  
         this(board, stage, r -> Gdx.app.postRunnable(r));
     }
 
     public GameManager(Board board, Stage stage, Consumer<Runnable> mainThread) {
         this.mainThread = mainThread;
         this.board = board;
-        this.stage = stage;
         stage.addListener(new InputListener() {
             @Override public boolean keyTyped(InputEvent event, char c) { return handleTypedChar(c); }
             @Override public boolean keyDown(InputEvent event, int keycode) { return handleKeyDown(keycode); }
@@ -108,13 +110,14 @@ public class GameManager implements Disposable {
         if (s != null) s.stop();
         players = null;
     }
+
     // Standard TCP LAN Connection
     public void host() {
         if (started) return;
         started = true;
         try {
             Vector2 size = board.getGridSize();
-            server = new GameServer(GameServer.DEFAULT_PORT, players.length, encodeBoard(), (int) (size.x * size.y));
+            server = new GameServer(GameServer.DEFAULT_PORT, 4, new BoardMessage(board.getAllPaths()), (int) (size.x * size.y));
             server.start();
             hostInfo = " - hosting on " + GameServer.getLanAddresses();
             System.out.println("Hosting. Others join with one of: " + GameServer.getLanAddresses());
@@ -260,79 +263,80 @@ public class GameManager implements Disposable {
         return networked() && turnId == myId;
     }
 
-    // Throw it into a string and decode on the other side
-    // Not as efficient as communicating only changes but prevents partial desyncs
-    private String encodeBoard() {
-        StringBuilder sb = new StringBuilder(Message.BOARD.name());
-        for (int p : board.getAllPaths()) sb.append(' ').append(p);
-        return sb.toString();
+    @Override 
+    public void onWelcome(int from, WelcomeMessage m) {
+        myId = m.getNewID();
+        status = "You are player " + getPlayerDisplayID(myId) + hostInfo;
+    }
+
+    @Override 
+    public void onBoard(int from, BoardMessage m) {
+        int[] paths = m.getPaths();
+        board.applyAllPaths(paths);
+    }
+
+    @Override 
+    public void onPlayerMoved(int from, PlayerMovedMessage m) {
+        Player player = findPlayerByID(m.getPlayerID());
+        TileInfo target = board.fetchTile(m.getTileID());
+        applyMove(player, target.pos());
+        generateRandomMovement();
+        if (playerWon(player) && myId == player.getID().intValue()) {
+            client.send(new WinMessage(player.getID()));
+        }
+    }
+
+    @Override 
+    public void onTurn(int from, TurnMessage m) {
+        turnId = m.getTurnPlayerID();
+        board.forEachTile((pos, tile) -> tile.setHighlighted(false));
+    }
+
+    @Override 
+    public void onFull(int from) {
+        rejected = true;
+        started = false;
+        status = "Game room is full";
+    }
+
+    @Override  
+    public void onWin(int from, WinMessage m) {
+        Player player = findPlayerByID(m.getWinnerID());
+        endGame(player + " has won!");
+    }
+
+    @Override 
+    public void onShift(int from, ShiftMessage m) {
+        ShiftID id = m.getShiftID();
+        board.shift(id);
+    }
+
+    @Override
+    public void onStep(int from, StepMessage m) {
+        updateStep(m.getStep());
+        if (myTurn()) {
+            handleTurnStep(step);
+        }
+    }
+
+    @Override 
+    public void onStart(int from) {
+        startGame();
     }
 
     // Simple communication dictionary for communicating between server and clients
     private void handleMessage(String line) {
-        if (players == null) return;
-        String[] p = line.split(" ");
         try {
-            Message m = Message.valueOf(p[0]);
-            switch (m) {
-                case WELCOME:
-                    myId = Integer.parseInt(p[1]);
-                    status = "You are player " + getPlayerDisplayID(myId) + hostInfo;
-                    if (server != null) {
-                        lobbyLabel.setText("Waiting for players...");
-                    }
-                    break;
-                case BOARD: {
-                    int[] paths = new int[p.length - 1];
-                    for (int i = 0; i < paths.length; i++) paths[i] = Integer.parseInt(p[i + 1]);
-                    board.applyAllPaths(paths);
-                    break;
-                }
-                case PLAYER_MOVED: {
-                    Player player = findPlayerByID(Integer.parseInt(p[1]));
-                    Board.TileInfo target = board.fetchTile(Integer.parseInt(p[2]));
-                    applyMove(player, target.pos);
-                    board.forEachTile((pos, tile) -> tile.setHighlighted(false));
-                    if (playerWon(player) && myId == player.getID().intValue()) {
-                        client.send(Message.WIN.name() + " " + player.getID());
-                    }
-                    break;
-                }
-                case TURN:
-                    turnId = Integer.parseInt(p[1]);
-                    //turnDeadline = System.currentTimeMillis() + Long.parseLong(p[2]);
-                    break;
-                case FULL:
-                    rejected = true;
-                    started = false;
-                    status = "Game room is full";
-                    break;
-                case WIN: {
-                    Player player = findPlayerByID(Integer.parseInt(p[1]));
-                    endGame(player + " has won!");
-                    break;
-                }
-                case SHIFT: {
-                    String[] shiftid = p[1].split("\\.");
-                    Direction dir = Direction.valueOf(shiftid[0]);
-                    int index = Integer.parseInt(shiftid[1]);
-                    board.shift(index, dir);
-                    break;
-                }
-                case STEP: {
-                    updateStep(TurnStep.valueOf(p[1]));
-                    if (myTurn()) {
-                        handleTurnStep(step);
-                    }
-                    break;
-                }
-                case START:
-                    startGame();
-                    break;
-            }
-        } catch (RuntimeException e) {
+            Message msg = Message.deserialize(line);
+            dispatcher.accept(msg);
+        }
+        catch (MessageDeserializationException e) {
             System.err.println("Bad message from server: " + line + " (" + e + ")");
         }
+    }
+
+    public void setDispatcher(Consumer<Message> dispatcher) {
+        this.dispatcher = dispatcher;
     }
 
     private void generateRandomMovement() {
@@ -385,15 +389,15 @@ public class GameManager implements Disposable {
     private void handleTileClick(int tileID) {
         if (!myTurn() || step != TurnStep.MOVING) { return; }
 
-        Board.TileInfo target = board.fetchTile(tileID);
-        if (!target.tile.isHighlighted()) { return; }
+        TileInfo target = board.fetchTile(tileID);
+        if (!target.tile().isHighlighted()) { return; }
 
-        client.send(Message.PLAYER_MOVED.name() + " " + tileID);
+        client.send(new PlayerMovedMessage(tileID));
     }
 
     private void handleArrowClick(ShiftID sid) {
-        if (!myTurn() || step != TurnStep.SHIFTING) { return; }
-        client.send(Message.SHIFT.name() + " " + sid.dir.name() + "." + sid.index);
+        if ((!myTurn() || step != TurnStep.SHIFTING) && !devMode) { return; }
+        client.send(new ShiftMessage(sid));
     }
 
 

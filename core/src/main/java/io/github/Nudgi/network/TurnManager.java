@@ -1,11 +1,14 @@
 package io.github.Nudgi.network;
 
 import java.util.Collection;
+import java.util.Optional;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import com.badlogic.gdx.utils.Null;
+
+import io.github.Nudgi.network.protocol.TurnMessage;
 
 public class TurnManager {
     private final Supplier<Collection<Integer>> connected;
@@ -47,8 +50,8 @@ public class TurnManager {
         this.step = step;
     }
 
-    public String currentTurnMessage() {
-        return current == -1 ? null : Message.TURN.name() + " " + current;
+    public Optional<TurnMessage> currentTurnMessage() {
+        return current == -1 ? Optional.empty() : Optional.of(new TurnMessage(current));
     }
 
     private void advance() {

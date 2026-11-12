@@ -72,6 +72,7 @@ public class NetworkController {
             case TurnMessage m          -> handler.onTurn(id, m);
             case WelcomeMessage m       -> handler.onWelcome(id, m);
             case WinMessage m           -> handler.onWin(id, m);
+            case NewPlayerMessage m     -> handler.onNewPlayer(id, m);
         }
     }
 }

@@ -20,4 +20,5 @@ public interface MessageHandler {
     default void onWelcome(int from, WelcomeMessage msg) {}
     default void onWin(int from, WinMessage msg) {}
     default void onBoard(int from, BoardMessage msg) {}
+    default void onNewPlayer(int from, NewPlayerMessage msg) {}
 }

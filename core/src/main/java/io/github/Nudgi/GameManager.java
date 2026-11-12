@@ -62,7 +62,7 @@ public class GameManager implements Disposable, MessageHandler {
     private Consumer<Message> dispatcher;
     private Label lobbyLabel = UIService.createLabel("See instructions above.");
     private Image lobbyPointer = new Image(new Texture("EmptyTile.png"));
-    private Stage stage;
+    private final Stage stage;
     
     public GameManager(Board board, Stage stage) {  
         this(board, stage, r -> Gdx.app.postRunnable(r));
@@ -71,6 +71,7 @@ public class GameManager implements Disposable, MessageHandler {
     public GameManager(Board board, Stage stage, Consumer<Runnable> mainThread) {
         this.mainThread = mainThread;
         this.board = board;
+        this.stage = stage;
         stage.addListener(new InputListener() {
             @Override public boolean keyTyped(InputEvent event, char c) { return handleTypedChar(c); }
             @Override public boolean keyDown(InputEvent event, int keycode) { return handleKeyDown(keycode); }

@@ -130,7 +130,7 @@ import io.github.Nudgi.network.protocol.config.SourceContext;
  */
 public abstract sealed class Message
 permits BoardMessage, PlayerMovedMessage, ShiftMessage,
-        StepMessage, Notification,
+        StepMessage, Notification, NewPlayerMessage,
         TurnMessage, WelcomeMessage, WinMessage {
     /**
      * If this character is present within the array result of {@link #serialized()},

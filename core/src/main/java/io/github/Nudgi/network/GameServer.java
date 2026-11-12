@@ -108,7 +108,7 @@ public class GameServer implements MessageHandler {
     }
 
     @Override 
-    public void onStart(int from) {
+    public void onStart(int from) { // Allows host to start the game in the future
         if (from == 0) {
             broadcast(new StartNotification());
             turnManager.refresh();
@@ -154,6 +154,7 @@ public class GameServer implements MessageHandler {
                     if (newId < 0) { send(new FullNotification()); return; }
                     id = newId;
                     send(new WelcomeMessage(id));
+                    broadcast(new NewPlayerMessage(id));
                     if (boardMessage != null) send(boardMessage);
                     clients.add(this);
                     if (clients.size() >= 2) { // Don't start until 2+ players

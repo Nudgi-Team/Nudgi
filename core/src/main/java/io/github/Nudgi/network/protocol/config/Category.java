@@ -19,7 +19,8 @@ public enum Category {
     WIN (WinMessage.class),
     TURN (TurnMessage.class),
     STEP (StepMessage.class),
-    START (StartNotification.class);
+    START (StartNotification.class),
+    NEW_PLAYER (NewPlayerMessage.class);
 
     private final Class<? extends Message> messageType;
 

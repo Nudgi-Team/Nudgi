@@ -131,7 +131,8 @@ import io.github.Nudgi.network.protocol.config.SourceContext;
 public abstract sealed class Message
 permits BoardMessage, PlayerMovedMessage, ShiftMessage,
         StepMessage, Notification, NewPlayerMessage,
-        TurnMessage, WelcomeMessage, WinMessage {
+        TurnMessage, WelcomeMessage, WinMessage,
+        TreasureMessage, TreasureInitMessage {
     /**
      * If this character is present within the array result of {@link #serialized()},
      * a {@link BadMessageException} is thrown when {@link #toString()} is called.

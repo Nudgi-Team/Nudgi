@@ -2,7 +2,6 @@ package io.github.Nudgi.entities;
 
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.OptionalInt;
 import java.util.stream.Stream;
 
 import io.github.Nudgi.Corner;
@@ -15,34 +14,25 @@ import io.github.Nudgi.Corner;
  */
 public final class PlayerManager {
     public static final int MAX_PLAYERS = 4;
-    public static final int MAX_ID = MAX_PLAYERS - 1;
 
-    // players may include null spots.
+    // players may include null spots
     private static Player[] players = new Player[MAX_PLAYERS];
     private static final Corner[] corners = Corner.values();
 
     private PlayerManager() {}
 
-    private static OptionalInt nextFreeID() {
-        for (int i = 0; i < players.length; i++) {
-            if (players[i] == null) {
-                return OptionalInt.of(i);
-            }
-        }
-        return OptionalInt.empty();
-    }
     /**
-     * Adds a new player to the game, if space is available.
-     * If created, the new player will have an ID equal to the next available ID, between
-     * 0 and {@link #MAX_ID}.
-     * @param hosting true if this player is the host.
-     * @param isYou true if this player represents "you".
-     * @return true if a player was created.
+     * Creates a new player with the specified ID.
+     * @param hosting whether this player is the host.
+     * @param isYou whether this player represents "you".
+     * @param playerID the ID of the player, between 0 and {@link #MAX_ID}.
+     * @return the Player that was created.
+     * @throws DuplicateIDException if a player already exists for the given ID.
      */
-    public static boolean create(boolean hosting, boolean isYou) {
-        OptionalInt target = nextFreeID(); 
-        target.ifPresent(id -> players[id] = new Player(id, corners[id], hosting, isYou));
-        return target.isPresent();
+    public static Player create(boolean hosting, boolean isYou, int playerID) {
+        if (players[playerID] != null) { throw new DuplicateIDException(playerID); }
+        players[playerID] = new Player(playerID, corners[playerID], hosting, isYou);
+        return players[playerID];
     }
 
     /**
@@ -75,7 +65,7 @@ public final class PlayerManager {
     }
 
     /**
-     * Returns the Player object representing "you".
+     * Returns the Player object representing "you", aka this client.
      * @return The "you" Player object.
      * @throws IllegalStateException if no Player object is present as "you".
      */
@@ -108,5 +98,11 @@ public final class PlayerManager {
      */
     public static boolean empty() {
         return getPlayers().length == 0;
+    }
+
+    public static class DuplicateIDException extends RuntimeException {
+        public DuplicateIDException(int id) {
+            super("Duplicate ID of " + id);
+        }
     }
 }

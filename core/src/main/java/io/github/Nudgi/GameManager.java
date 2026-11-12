@@ -132,6 +132,7 @@ public class GameManager implements Disposable, MessageHandler {
     private void beginDevMode() {
         devMode = true;
         host();
+        onStart(0);
     }
 
     private void startGame() {

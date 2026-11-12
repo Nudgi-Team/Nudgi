@@ -1,6 +1,7 @@
 package io.github.Nudgi;
 
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -351,7 +352,34 @@ public class Board {
         }
         return visited;
     }
+    /**
+     * BFS from {@code from} through non-blocked tiles to the nearest tile matching {@code isTarget}.
+     * @return the first step of the shortest path, or empty if already on a target or none is reachable.
+     */
+    public Optional<Vector2> nextStepToward(Vector2 from, Predicate<Tile> isTarget) {
+        if (isTarget.test(fetchTile(from))) return Optional.empty();
 
+        Map<Vector2, Vector2> cameFrom = new HashMap<>();
+        Deque<Vector2> queue = new ArrayDeque<>();
+        cameFrom.put(from, null);
+        queue.add(from);
+
+        while (!queue.isEmpty()) {
+            Vector2 cur = queue.poll();
+            for (Vector2 next : getAdjacentPositions(cur, true)) {
+                if (cameFrom.containsKey(next)) continue;
+                cameFrom.put(next, cur);
+                if (isTarget.test(fetchTile(next))) {
+                    // Walk back to the tile adjacent to the start
+                    Vector2 step = next;
+                    while (!cameFrom.get(step).equals(from)) step = cameFrom.get(step);
+                    return Optional.of(step);
+                }
+                queue.add(next);
+            }
+        }
+        return Optional.empty();
+    }
 
     public Vector2 toGrid(Vector2 worldPos) {
         float gx = (worldPos.x - position.x) / tileSize;
@@ -361,6 +389,27 @@ public class Board {
         int y = (int)Math.floor(gy);
 
         return new Vector2(x, y);
+    }
+
+    public Vector2 getRandomValidPos() {
+        int xPos = 0;
+        int yPos = 0;
+        do{
+            xPos = ThreadLocalRandom.current().nextInt((int)gridSize.x);
+            yPos = ThreadLocalRandom.current().nextInt((int)gridSize.y);
+        }while(fetchTile(new Vector2(xPos,yPos)).getPaths() == 0);
+        return new Vector2(xPos, yPos);
+    }
+
+    public boolean enemyWithinOneTile(Vector2 pos){
+        Tile currentTile = fetchTile(pos);
+        if(currentTile.hasEnemy()) return true;
+
+        for(Vector2 position : getAdjacentPositions(pos, true)){
+            if(fetchTile(pos).hasEnemy()) return true;
+        }
+
+        return false;
     }
 
 

@@ -18,8 +18,8 @@ public class Player extends Entity<Integer, Image> {
      * @param stage the {@link Stage} to place the Image onto.
      * @param playerID a unique identifier for this instance.
      */
-    public Player(float x, float y, float width, float height, Stage stage, int playerID) {   
-        super(new Image(playerTexture), playerID);     
+    public Player(float x, float y, float width, float height, Stage stage, int playerID) {
+        super(new Image(playerTexture), playerID);
         Image playerImage = getActor();
         setPosition(new Vector2(x, y));
         playerImage.setWidth(width);
@@ -32,12 +32,12 @@ public class Player extends Entity<Integer, Image> {
         imageOffset = offset;
     }
 
-    @Override 
+    @Override
     public void setPosition(Vector2 v) {
         super.setPosition(v.add(imageOffset));
     }
 
-    @Override 
+    @Override
     public String toString() {
         return "Player " + (getID() + 1);
     }

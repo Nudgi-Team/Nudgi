@@ -48,7 +48,6 @@ public class Enemy extends Entity<Integer, Image> {
 
 
     public void move(Board board){
-        System.out.println("ENEMY MOVE CALLED");
         // Get random move in any direction
         List<Vector2> tiles = board.getAdjacentPositions(board.getEnemyPosition(this), true);
 

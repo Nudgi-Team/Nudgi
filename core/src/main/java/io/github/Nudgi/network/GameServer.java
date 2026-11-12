@@ -139,6 +139,16 @@ public class GameServer {
                         + tileId
         );
     }
+    public void playerRespawned(int playerId, int tileId) {
+
+        broadcast(
+            Message.PLAYER_RESPAWN.name()
+                + " "
+                + playerId
+                + " "
+                + tileId
+        );
+    }
 
     // Gets IP Address(s) for clients to type in, obviously needs to be communicated in person as it's posted in the title
     public static List<String> getLanAddresses() {

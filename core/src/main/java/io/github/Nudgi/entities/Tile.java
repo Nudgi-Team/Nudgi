@@ -63,7 +63,7 @@ public class Tile extends Entity<Integer, Stack> {
 
     private void generatePaths(){
         // Choose some path amount, more likely to be 2 or 3
-        int[] allowed = {2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 0};
+        int[] allowed = {2, 2, 2, 2, 3, 3, 3, 3, 4, 4};//, 0};
         int pathAmount = allowed[ThreadLocalRandom.current().nextInt(allowed.length)];
 
         // Flip paths bits to 1 if they are a path
@@ -206,5 +206,12 @@ public class Tile extends Entity<Integer, Stack> {
     @Override
     public void setPosition(Vector2 to) {
         super.setPosition(to);
+    }
+
+    public boolean hasEnemy(){
+        return !enemies.isEmpty();
+    }
+    public boolean hasPlayer(){
+        return !players.isEmpty();
     }
 }

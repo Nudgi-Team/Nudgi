@@ -22,10 +22,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
-import io.github.Nudgi.entities.Enemy;
-import io.github.Nudgi.entities.Player;
-import io.github.Nudgi.entities.Tile;
-import io.github.Nudgi.entities.TrivialEntity;
+import io.github.Nudgi.entities.*;
 import io.github.Nudgi.entities.ShiftArrow.ShiftID;
 import io.github.Nudgi.network.GameClient;
 import io.github.Nudgi.network.GameServer;
@@ -65,7 +62,7 @@ public class GameManager implements Disposable {
     private final Label lobbyLabel = UIService.createLabel("See above for instructions.");
     private final Image lobbyPointer = new Image(new Texture("Arrow.png"));
 
-    private Enemy[] enemies = new Enemy[2];
+    private Enemy[] enemies = new Enemy[4];
 
     public GameManager(Board board, Stage stage) {
         this(board, stage, r -> Gdx.app.postRunnable(r));
@@ -167,10 +164,14 @@ public class GameManager implements Disposable {
             board.initializePlayer(players[i], boardCornerPos);
         }
 
-        enemies[0] = new Enemy(4,4, board.getTileSize(), board.getTileSize(), stage, 0, "Enemy.png");
+        enemies[0] = new Enemy(3,3, board.getTileSize(), board.getTileSize(), stage, 0, "Enemy.png");
         board.initializeEnemy(enemies[0], new Vector2(3,3));
-        enemies[1] = new Enemy(4,4, board.getTileSize(), board.getTileSize(), stage, 1, "Enemy.png");
+        enemies[1] = new Enemy(5,5, board.getTileSize(), board.getTileSize(), stage, 1, "Enemy.png");
         board.initializeEnemy(enemies[1], new Vector2(5,5));
+        enemies[2] = new TheChaser(3,5, board.getTileSize(), board.getTileSize(), stage, 2);
+        board.initializeEnemy(enemies[2], new Vector2(3,5));
+        enemies[3] = new TheChaser(5,3, board.getTileSize(), board.getTileSize(), stage, 3);
+        board.initializeEnemy(enemies[3], new Vector2(5,3));
 
         board.forEachTile((pos, tile) -> tile.addListener(this::handleTileClick));
         board.forEachTile((pos, tile) -> stage.addActor(tile.getActor()));
@@ -308,18 +309,19 @@ public class GameManager implements Disposable {
                     if (playerWon(player) && myId == player.getID().intValue()) {
                         client.send(Message.WIN.name() + " " + player.getID());
                     }
+
                     if(server != null){
+                        checkForDeath();
                         numberOfMoves++;
-                        if(numberOfMoves >= server.getConnectedPlayerCount()){
+                        if(numberOfMoves == server.getConnectedPlayerCount()){
                             for(Enemy enemy : enemies){
                                 enemy.move(board);
                                 int enemyID = enemy.getID();
-                                System.out.println("Enemy ID: " + Integer.toString(enemyID));
-                                System.out.println("Target Tile: " + Integer.toString(board.fetchTile(board.getEnemyPosition(enemy)).tileID));
                                 server.enemyMoved(enemy.getID().intValue(), board.fetchTile(board.getEnemyPosition(enemy)).tileID);
                             }
                             numberOfMoves = 0;
                         }
+                        checkForDeath();
                     }
                     break;
                 }
@@ -329,9 +331,15 @@ public class GameManager implements Disposable {
                     moveEnemy(enemy, target.pos);
                 }
                 break;
+                case PLAYER_RESPAWN:{
+                    Player player = findPlayerByID(Integer.parseInt(p[1]));
+                    Board.TileInfo target = board.fetchTile(Integer.parseInt(p[2]));
+                    movePlayer(player, target.pos);
+                }
+                break;
                 case TURN:
                     turnId = Integer.parseInt(p[1]);
-                    //turnDeadline = System.currentTimeMillis() + Long.parseLong(p[2]);
+                    turnDeadline = System.currentTimeMillis() + Long.parseLong(p[2]);
                     break;
                 case FULL:
                     rejected = true;
@@ -365,6 +373,22 @@ public class GameManager implements Disposable {
             System.err.println("Bad message from server: " + line + " (" + e + ")");
         }
     }
+
+    private void checkForDeath(){
+        if(server == null) return;
+        for(Enemy enemy : enemies){
+            for(Player player : players){
+                if (board.getPlayerPosition(player).epsilonEquals(board.getEnemyPosition(enemy))){
+                    Vector2 newPos;
+                    do{
+                        newPos = board.getRandomValidPos();
+                    }while(board.enemyWithinOneTile(newPos));
+                    server.playerRespawned(player.getID(), board.fetchTile(newPos).getID());
+                }
+            }
+        }
+    }
+
 
     private void generateRandomMovement() {
         int currentMovement = ThreadLocalRandom.current().nextInt(1, 7);

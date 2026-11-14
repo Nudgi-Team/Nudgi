@@ -27,8 +27,6 @@ allprojects {
 
 configure(subprojects) {
   apply plugin: 'java-library'
-  java.sourceCompatibility = 8
-  java.targetCompatibility = 8
 
   // From https://lyze.dev/2021/04/29/libGDX-Internal-Assets-List/
   // The article can be helpful when using assets.txt in your project.
@@ -64,6 +62,11 @@ subprojects {
     mavenLocal()
     maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }
     maven { url = 'https://jitpack.io' }
+  }
+  java {
+    toolchain {
+      languageVersion = JavaLanguageVersion.of(25)
+    }
   }
 }
 

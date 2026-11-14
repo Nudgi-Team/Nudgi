@@ -6,6 +6,8 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
 
+import io.github.Nudgi.network.protocol.Message;
+
 public class GameClient {
     private final Consumer<String> onMessage;
     private final Runnable onDisconnect;
@@ -43,7 +45,7 @@ public class GameClient {
         t.start();
     }
 
-    public void send(String msg) {
+    public void send(Message msg) {
         PrintWriter o = out;
         if (o != null) o.println(msg);
     }

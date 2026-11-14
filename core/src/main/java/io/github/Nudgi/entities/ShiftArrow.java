@@ -18,18 +18,5 @@ public class ShiftArrow extends Entity<ShiftArrow.ShiftID, Image> {
         + "\nBelonging to entity " + super.toString();
     }
 
-    public static class ShiftID {
-        public final int index;
-        public final Direction dir;
-
-        public ShiftID(int index, Direction dir) {
-            this.index = index;
-            this.dir = dir;
-        }
-
-        @Override 
-        public String toString() {
-            return "ShiftID [" + dir + "] " + index;
-        }
-    }
+    public record ShiftID(int index, Direction dir) {}
 }

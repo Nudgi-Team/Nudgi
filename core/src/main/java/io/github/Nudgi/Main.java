@@ -15,6 +15,7 @@ public class Main extends ApplicationAdapter {
     private GameManager game;
     private Stage gameStage;
     private Viewport viewport;
+    private NetworkController controller; 
 
     @Override
     public void create() {
@@ -32,6 +33,8 @@ public class Main extends ApplicationAdapter {
         board = new Board(new Vector2(windowSize.x/2-boardSize/2,windowSize.y/2-boardSize/2), boardSize, new Vector2(9,9));
         game = new GameManager(board, gameStage);
         Gdx.input.setInputProcessor(gameStage);
+        controller = new NetworkController(game);
+        game.setDispatcher(controller::fire);
     }
 
     @Override 

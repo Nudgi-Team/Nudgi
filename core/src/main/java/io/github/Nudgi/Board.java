@@ -62,8 +62,8 @@ public class Board {
 
     private Vector2 getArrowGridPos(ShiftArrow arrow) {
         ShiftID id = arrow.getID();
-        Direction dir = id.dir.inverse(); // "LEFT" arrows appear on the right, and so on.
-        int index = id.index;
+        Direction dir = id.dir().inverse(); // "LEFT" arrows appear on the right, and so on.
+        int index = id.index();
 
         Vector2 pos = dir.vector();
         if (pos.x > 0 || pos.y > 0) {
@@ -102,7 +102,7 @@ public class Board {
 
 
     public void shift(ShiftID id) {
-        shift(id.index, id.dir);
+        shift(id.index(), id.dir());
     }
 
     private void moveTile(Tile usingTileAt, int toX, int toY) {
@@ -202,8 +202,8 @@ public class Board {
     }
 
     public Vector2 getPlayerPosition(Player p) {
-        return search(info -> info.tile.containsPlayer(p))
-            .orElseThrow(IllegalArgumentException::new).pos;
+        return search(info -> info.tile().containsPlayer(p))
+            .orElseThrow(IllegalArgumentException::new).pos();
     }
 
     /**
@@ -276,7 +276,7 @@ public class Board {
 
 
     public TileInfo fetchTile(int id) {
-        Optional<TileInfo> container = search((info) -> info.tile.tileID == id);
+        Optional<TileInfo> container = search((info) -> info.tile().tileID == id);
         return container.orElseThrow(IllegalArgumentException::new);
     }
 
@@ -343,16 +343,5 @@ public class Board {
         int y = (int)Math.floor(gy);
 
         return new Vector2(x, y);
-    }
-
-
-    public static class TileInfo {
-        public final Vector2 pos;
-        public final Tile tile;
-
-        public TileInfo(Vector2 pos, Tile t) {
-            this.pos = pos;
-            this.tile = t;
-        }
     }
 }

@@ -12,7 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import io.github.Nudgi.entities.Player;
 import io.github.Nudgi.entities.ShiftArrow;
 import io.github.Nudgi.entities.Tile;
-import io.github.Nudgi.entities.ShiftArrow.ShiftID;
+import io.github.Nudgi.entities.ShiftID;
 
 public class Board {
     private final Tile[][] tiles;
@@ -87,7 +87,7 @@ public class Board {
             ShiftArrow[] arr = new ShiftArrow[bounds];
 
             for (int i = 0; i < bounds; i++) {
-                arr[i] = new ShiftArrow(i+1, dir);
+                arr[i] = new ShiftArrow(new ShiftID(i+1, dir));
                 
                 Vector2 worldPos = toWorldPos(getArrowGridPos(arr[i]));
                 Image arrowImage = arr[i].getActor();
@@ -204,7 +204,7 @@ public class Board {
 
     public Vector2 getPlayerPosition(Player p) {
         return search(info -> info.tile().containsPlayer(p))
-            .orElseThrow(() -> new IllegalArgumentException("For input player " + p.playerID)).pos();
+            .orElseThrow(() -> new IllegalArgumentException("For input player " + p.getID())).pos();
     }
 
     /**
@@ -256,6 +256,13 @@ public class Board {
             for (int y = 0; y < gridSize.y; y++) {
                 tiles[x][y].setPaths(paths[i++]);
             }
+        }
+    }
+
+    public void placeTreasures(TreasureTileInfo[] treasures) {
+        for (TreasureTileInfo info: treasures) {
+            Tile target = fetchTile(info.targetTileID()).tile();
+            target.addTreasure(info.treasureKind());
         }
     }
 
@@ -324,7 +331,7 @@ public class Board {
 
 
     public TileInfo fetchTile(int id) {
-        Optional<TileInfo> container = search((info) -> info.tile().tileID == id);
+        Optional<TileInfo> container = search((info) -> info.tile().getID() == id);
         return container.orElseThrow(IllegalArgumentException::new);
     }
 

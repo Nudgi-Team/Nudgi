@@ -3,20 +3,22 @@ package io.github.Nudgi.entities;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 
-import io.github.Nudgi.Direction;
-
-public class ShiftArrow extends Entity<ShiftArrow.ShiftID, Image> {
+public class ShiftArrow extends Entity<Image> {
     private static final Texture arrowTexture = new Texture("Arrow.png");
 
-    public ShiftArrow(int index, Direction dir) {
-        super(new Image(arrowTexture), new ShiftID(index, dir));
+    private final ShiftID id;
+
+    public ShiftArrow(ShiftID id) {
+        super(new Image(arrowTexture));
+        this.id = id;
+    }
+
+    public ShiftID getID() {
+        return id;
     }
 
     @Override 
     public String toString() {
-        return "Shift arrow with " + getID().toString()
-        + "\nBelonging to entity " + super.toString();
+        return "Shift arrow with id " + id;
     }
-
-    public record ShiftID(int index, Direction dir) {}
 }

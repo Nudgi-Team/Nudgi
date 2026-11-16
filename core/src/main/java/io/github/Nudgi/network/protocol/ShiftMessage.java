@@ -1,7 +1,7 @@
 package io.github.Nudgi.network.protocol;
 
 import io.github.Nudgi.Direction;
-import io.github.Nudgi.entities.ShiftArrow.ShiftID;
+import io.github.Nudgi.entities.ShiftID;
 import io.github.Nudgi.network.protocol.config.SourceContext;
 
 public final class ShiftMessage extends Message {

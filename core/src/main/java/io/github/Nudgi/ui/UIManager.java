@@ -1,6 +1,8 @@
 package io.github.Nudgi.ui;
 
+import io.github.Nudgi.Board;
 import io.github.Nudgi.ui.StageManager.Mode;
+import io.github.Nudgi.ui.game.BoardUI;
 import io.github.Nudgi.ui.game.TreasureUI;
 import io.github.Nudgi.ui.lobby.LobbyUI;
 
@@ -8,15 +10,22 @@ import io.github.Nudgi.ui.lobby.LobbyUI;
 public class UIManager {
     private LobbyUI lobby;
     private TreasureUI treasureUi; 
+    private BoardUI boardUi;
+    private Board board;
 
-    public UIManager() {
+    public UIManager(Board board) {
+        this.board = board;
         StageManager.onModeChanged(this::setMode);
+    }
+
+    public GameUI getGameUI() {
+        return new GameUI(treasureUi, boardUi);
     }
 
     private void setMode(Mode mode) {
         switch(mode) {
-            case LOBBY: setToLobby(); break;
-            case GAME: setToGame(); break;
+            case LOBBY -> setToLobby();
+            case GAME -> setToGame();
         }   
     }
 
@@ -26,6 +35,7 @@ public class UIManager {
 
     private void setToGame() {
         treasureUi = new TreasureUI();
+        boardUi = new BoardUI(board);
     }
 
     public void onDevMode(Runnable... listeners) {
@@ -35,4 +45,6 @@ public class UIManager {
     public void lobbyWaitingMode() {
         lobby.waitingMode();
     }
+
+    public record GameUI(TreasureUI treasure, BoardUI board) {}
 }

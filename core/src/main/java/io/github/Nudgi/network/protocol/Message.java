@@ -102,13 +102,13 @@ import io.github.Nudgi.network.protocol.config.SourceContext;
  * - The elements of {@code args} only include the string representations of each
  * data field specified in the corresponding subclass's serialized representation.
  * Furthermore, the {@code SourceContext} passed in can only correspond to 
- * any possible argument in super() calls within the subclass.
+ * any possible argument in {@code super(SourceContext)} calls within the subclass.
  *
  * - - In other words, {@code args} will always represent a plausible output
  * from a call to that Message's {@link Message#serialized() serialized()} method.
  *
  * - The constructor must pass a SourceContext value equal to the SourceContext received
- * in the first parameter, in its call to {@code super()}. For messages with
+ * in the first parameter, in its call to {@code super(SourceContext)}. For messages with
  * only one possible context, that context may be passed directly instead.
  * 
  * - It must reconstruct the subclass in a manner such that it conforms
@@ -350,6 +350,71 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
      * @return The array of String representations for this subclass's data fields.
      */
     protected abstract String[] serialized();
+
+    /**
+     * Convenience method for use during serialization to combine
+     * intermediate serialized results.
+     * @param prependLengths if true, the length of each array in {@code arrays} is
+     * prepended to the resulting array, in the provided order.
+     * @param arrays the intermediate results to combine.
+     * @return a new array containing the lengths of
+     * all provided arrays if {@code prependLengths} is {@code true}, followed by
+     * each String value within {@code arrays}, in the order provided.
+     * @apiNote The prependLengths argument is designed for use with {@link #slice(String[], int)},
+     * the inverse of this method. When using this parameter alongside {@code slice},
+     * the {@code numSlices} parameter in that method should always be the number 
+     * of arguments passed into {@code arrays} here ({@code arrays.length}).
+     */
+    protected static String[] concat(boolean prependLengths, String[]... arrays) {
+        String[] values = Arrays.stream(arrays)
+            .flatMap(Arrays::stream)
+            .toArray(String[]::new);
+
+        if (prependLengths) {
+            String[] lengths = Arrays.stream(arrays)
+                .map(a -> String.valueOf(a.length))
+                .toArray(String[]::new);
+            return concat(false, lengths, values);
+        }
+        return values;
+    }
+
+    /**
+     * Automatically separates serialized input into individual
+     * slices for more granular processing, particularly when
+     * the serialized results contain multiple arrays.
+     * <p>
+     * This method requires a number of length prefixes equal to the {@code numSlices}
+     * parameter to be present at the beginning of {@code args}, each representing
+     * the length of that particular slice.
+     * <p>
+     * @param args the raw serialized input, containing the length prefixes for each array
+     * followed by the payload.
+     * @param numSlices the amount of times to slice.
+     * @return a sliced version of the serialized input. An additional array is returned
+     * as the last element containing any remaining values in {@code args} after slicing,
+     * which may be empty. Each of these arrays is always a copy of a subset of args.
+     * @apiNote This is the inverse of {@link #concat(boolean, String[][])}, which
+     * is capable of providing the required length prefixes automatically. When
+     * using this method where all of the following hold:
+     * <p>
+     * - {@code args} is the result of a call to {@code concat}
+     * where {@code prependLengths} was true
+     * - {@code numSlices} is equal to {@code arrays.length} of the {@code concat} call
+     * <p>
+     * the last element of this method's return value will always be an empty array.
+     */
+    protected static String[][] slice(String[] args, int numSlices) {
+        String[][] output = new String[numSlices+1][];
+        int generated = numSlices;
+        for (int i = 0; i < numSlices; i++) {
+            int elementCount = Integer.parseInt(args[i]);
+            output[i] = Arrays.copyOfRange(args, generated, generated + elementCount);
+            generated += elementCount;
+        }        
+        output[numSlices] = Arrays.copyOfRange(args, generated, args.length);
+        return output;
+    }
 
 
     private String buildPayload() {

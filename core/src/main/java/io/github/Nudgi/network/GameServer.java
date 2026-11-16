@@ -162,12 +162,12 @@ public class GameServer implements MessageHandler {
                     id = newId;
                     send(new WelcomeMessage(id));
                     broadcast(new NewPlayerMessage(id));
+
                     if (boardMessage != null) send(boardMessage);
                     clients.add(this);
 
                     int[] assignments = TreasureManager.randomTreasures(TREASURES_PER_PLAYER);
 
-                    broadcast(new NewPlayerMessage(id));
                     broadcast(new TreasureInitMessage(assignments, id));
                     controller = new NetworkController(GameServer.this, id);
                     controller.synchronize(lock); 

@@ -13,12 +13,11 @@ import java.util.ArrayList;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class Tile extends Entity<Integer, Stack> {
+public class Tile extends Entity<Stack> {
     private static final Texture highlight = new Texture("highlight.png");
     private static final int NORTH = 1, EAST = 2, SOUTH = 4, WEST = 8;
 
-    public final int tileID;
-
+    private final int tileID;
     private Texture sprite = new Texture("EmptyTile.png");
     private int paths = 0;
     private int rotation = 1;
@@ -29,7 +28,7 @@ public class Tile extends Entity<Integer, Stack> {
     private Integer treasure = null;
 
     public Tile(boolean north, boolean south, boolean east, boolean west, int tileID){
-        super(new Stack(), tileID);
+        super(new Stack());
         tileGraphics = getActor();
         this.tileID = tileID;
 
@@ -44,7 +43,7 @@ public class Tile extends Entity<Integer, Stack> {
     }
 
     public Tile(int tileID){
-        super(new Stack(), tileID);
+        super(new Stack());
         this.tileID = tileID;
         tileGraphics = getActor();
         generatePaths();
@@ -129,6 +128,10 @@ public class Tile extends Entity<Integer, Stack> {
 
     public int getPaths() {
         return paths;
+    }
+
+    public int getID() {
+        return tileID;
     }
 
     public int getPathCount() {

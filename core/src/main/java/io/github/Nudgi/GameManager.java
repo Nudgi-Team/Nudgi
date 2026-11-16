@@ -22,9 +22,9 @@ import com.badlogic.gdx.utils.Disposable;
 
 import io.github.Nudgi.entities.Player;
 import io.github.Nudgi.entities.PlayerManager;
+import io.github.Nudgi.entities.ShiftID;
 import io.github.Nudgi.entities.Tile;
 import io.github.Nudgi.entities.TrivialEntity;
-import io.github.Nudgi.entities.ShiftArrow.ShiftID;
 import io.github.Nudgi.network.GameClient;
 import io.github.Nudgi.network.GameServer;
 import io.github.Nudgi.network.TurnStep;
@@ -32,6 +32,7 @@ import io.github.Nudgi.ui.StageManager;
 import io.github.Nudgi.ui.UIManager;
 import io.github.Nudgi.ui.UIService;
 import io.github.Nudgi.ui.StageManager.Mode;
+import io.github.Nudgi.ui.game.BoardUI;
 import io.github.Nudgi.network.protocol.*;
 import io.github.Nudgi.network.protocol.Message.MessageDeserializationException;
 import io.github.Nudgi.network.protocol.TreasureMessage.Delta;
@@ -56,7 +57,8 @@ public class GameManager implements Disposable, MessageHandler {
     private final Label turnStepLabel = UIService.createLabel(null);
     private boolean devMode = false;
     private Consumer<Message> dispatcher;
-    private UIManager ui = new UIManager();
+    private UIManager ui;
+    
     
     public GameManager(Board board) {
         this(board, r -> Gdx.app.postRunnable(r));
@@ -65,6 +67,7 @@ public class GameManager implements Disposable, MessageHandler {
     public GameManager(Board board, Consumer<Runnable> mainThread) {
         this.mainThread = mainThread;
         this.board = board;
+        this.ui = new UIManager(board);
         
         STAGE.addListener(new InputListener() {
             @Override public boolean keyTyped(InputEvent event, char c) { return handleTypedChar(c); }
@@ -98,13 +101,22 @@ public class GameManager implements Disposable, MessageHandler {
         if (s != null) s.stop();
     }
 
+    private TreasureTileInfo[] generateTreasures() {
+        TreasureTileInfo[] results = new TreasureTileInfo[TreasureManager.TREASURE_COUNT];
+        Tile[] tiles = board.randomTilesWithPaths(results.length, true);
+        for (int i = 0; i < results.length; i++) {
+            results[i] = new TreasureTileInfo(i, tiles[i].getID());
+        }
+        return results;
+    }
+
     // Standard TCP LAN Connection
     public void host() {
         if (started) return;
         started = true;
         try {
             Vector2 size = board.getGridSize();
-            server = new GameServer(GameServer.DEFAULT_PORT, PlayerManager.MAX_PLAYERS, new BoardMessage(board.getAllPaths()), (int) (size.x * size.y));
+            server = new GameServer(GameServer.DEFAULT_PORT, PlayerManager.MAX_PLAYERS, new BoardMessage(board.getAllPaths(), generateTreasures()), (int) (size.x * size.y));
             server.start();
             hostInfo = " - hosting on " + GameServer.getLanAddresses();
             System.out.println("Hosting. Others join with one of: " + GameServer.getLanAddresses());
@@ -130,37 +142,13 @@ public class GameManager implements Disposable, MessageHandler {
     }
 
     private void startGame() {
-        playerSetup();
-        stageBoard();
-        uiInit();
-        placeTreasuresOnBoard();
-    }
-
-    private void playerSetup() {
-        // TODO also move to BoardUI
-        // Corner[] basePos = Corner.values();
-            // Vector2 boardCornerPos = getBoardCornerPos(basePos[i]);
-            // Vector2 worldPos = board.toWorldPos(boardCornerPos);
-            // float tileSize = board.getTileSize();
-            
-            // TODO move this to BoardUI
-            // players[i].setPosition(worldPos);
-            // players[i].setSizeSquare(tileSize*0.9f);
-            // players[i].addListener(this::handlePlayerClick);
-
-    }
-
-    public void stageBoard() {
         StageManager.setStageMode(Mode.GAME);
-        // TODO goes into BoardUI
-        // for (int i = 0; i < players.length; i++) {
-        //     STAGE.addActor(players[i].getActor());
-        // }
 
-        board.forEachTile((pos, tile) -> tile.addListener(this::handleTileClick));
-        board.forEachTile((pos, tile) -> STAGE.addActor(tile.getActor()));
-        board.forEachArrow(arrow -> arrow.addListener(this::handleArrowClick));
-        board.forEachArrow(arrow -> STAGE.addActor(arrow.getActor()));
+        BoardUI boardUI = ui.getGameUI().board();
+        boardUI.onTileClicked(this::handleTileClick);
+        boardUI.onarrowClicked(this::handleArrowClick);
+
+        uiInit();
     }
 
     private void startTyping() {
@@ -177,17 +165,6 @@ public class GameManager implements Disposable, MessageHandler {
         turnPlayerLabel.setPosition(0.05f*VIEW.getWorldWidth(), VIEW.getWorldHeight()*0.95f);
         turnStepLabel.setY(VIEW.getWorldHeight()*0.05f);
         UIService.centerWidget(turnStepLabel, true, false);
-    }
-
-
-    private void placeTreasuresOnBoard() {
-        Tile[] treasureSpots = board.randomTilesWithPaths(TreasureManager.TREASURE_COUNT, true);
-        for (int i = 0; i < treasureSpots.length; i++) {
-            treasureSpots[i].addTreasure(i);
-            Vector2 pos = board.toWorldPos(board.fetchTile(treasureSpots[i].tileID).pos());
-            TreasureManager.TREASURES[i].setPosition(pos.x, pos.y);
-        }
-        TreasureManager.addLabelsToStage(STAGE);
     }
 
     private void showTyping() {
@@ -284,7 +261,9 @@ public class GameManager implements Disposable, MessageHandler {
     @Override 
     public void onBoard(int from, BoardMessage m) {
         int[] paths = m.getPaths();
+        TreasureTileInfo[] treasures = m.getTreasureInfo();
         board.applyAllPaths(paths);
+        board.placeTreasures(treasures);
     }
 
     @Override 
@@ -294,7 +273,7 @@ public class GameManager implements Disposable, MessageHandler {
         applyMove(player, target.pos());
         clearHighlights();
         generateRandomMovement();
-        if (playerWon(player) && myId == player.getID().intValue()) {
+        if (playerWon(player) && myId == player.getID()) {
             client.send(new WinMessage(player.getID()));
         }
     }
@@ -348,9 +327,13 @@ public class GameManager implements Disposable, MessageHandler {
     public void onTreasure(int from, TreasureMessage m) {
         int collectorId = m.getCollectorID();
         Player targetPlayer = PlayerManager.fetchPlayer(collectorId);
-        targetPlayer.collectTreasure();
+        switch (m.getTreasureCountDelta()) {
+            case LOSE -> targetPlayer.loseTreasure(); // Supports enemies
+            case COLLECT -> targetPlayer.collectTreasure();
+        }
     }
 
+    @Override 
     public void onTreasureInit(int from, TreasureInitMessage m) {
         int targetPlayer = m.getPlayerID();
         int[] treasures = m.getTreasures();
@@ -407,12 +390,6 @@ public class GameManager implements Disposable, MessageHandler {
         }
     }
 
-    private void handlePlayerClick(int targetPlayerID) {
-        // Possibly change this to a tooltip in the future showing the player id and their
-        // existing powerups
-        System.out.println("Player clicked " + targetPlayerID);
-    }
-
     private void handleTileClick(int tileID) {
         if ((!myTurn() || step != TurnStep.MOVING) && !devMode) { return; }
 
@@ -423,6 +400,7 @@ public class GameManager implements Disposable, MessageHandler {
         
         Player player = PlayerManager.getYourself();
         target.tile().getTreasure().ifPresent(value -> {
+            System.out.println("Landed on treasure " + value);
             if (player.canCollectTreasure(value)) {
                 client.send(new TreasureMessage(myId, Delta.COLLECT));
             }

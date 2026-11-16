@@ -19,11 +19,10 @@ import io.github.Nudgi.Corner;
  * - host: This player represents the host, or server, of the session.
  * - you: This player represents "you", defined as the Player object representing this client.
  */
-public class Player extends Entity<Integer, Image> {
+public class Player extends Entity<Image> {
     private static final Texture playerTexture = new Texture("Player.png");
 
-    public final int playerID;
-
+    private final int playerID;
     private final boolean host;
     private final boolean you;
     private final Corner startingCorner;
@@ -39,7 +38,7 @@ public class Player extends Entity<Integer, Image> {
      * @param isYou whether this player is "you".
      */
     public Player(int playerID, Corner corner, boolean isHost, boolean isYou) {   
-        super(new Image(playerTexture), playerID);
+        super(new Image(playerTexture));
         this.playerID = playerID;
         startingCorner = corner;
         host = isHost;
@@ -48,9 +47,13 @@ public class Player extends Entity<Integer, Image> {
 
     @Override 
     public String toString() {
-        return "Player " + (getID() + 1);
+        return "Player " + (playerID + 1);
     }
 
+    public int getID() {
+        return playerID;
+    }
+    
     public boolean isHost() {
         return host;
     }

@@ -6,13 +6,17 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class GameServer {
+import io.github.Nudgi.MessageHandler;
+import io.github.Nudgi.NetworkController;
+import io.github.Nudgi.network.protocol.*;
+import io.github.Nudgi.network.protocol.Message.MessageDeserializationException;
+
+public class GameServer implements MessageHandler {
     public static final int DEFAULT_PORT = 5000;
 
     private final int port, maxPlayers, tileCount;
-    private final String boardMessage;
+    private final BoardMessage boardMessage;
     private final List<ClientHandler> clients = new CopyOnWriteArrayList<>();
-    private final Map<Integer, Integer> lastTile = new LinkedHashMap<>();
     private final Object lock = new Object();
     private final TurnManager turnManager;
     private ServerSocket serverSocket;
@@ -20,15 +24,15 @@ public class GameServer {
     private boolean gameStarted = false;
     
     // Standard server attributes
-    public GameServer(int port, int maxPlayers, String boardMessage, int tileCount) {
+    public GameServer(int port, int maxPlayers, BoardMessage boardMessage, int tileCount) {
         this.port = port;
         this.maxPlayers = maxPlayers;
         this.boardMessage = boardMessage;
         this.tileCount = tileCount; // Allows for dynamic board sizes in the future
         this.turnManager = new TurnManager(this::connectedIds,
-            (id) -> {
-                broadcast(Message.TURN.name() + " " + id);
-                broadcast(Message.STEP.name() + " " + TurnStep.SHIFTING.name());
+            id -> {
+                broadcast(new TurnMessage(id));
+                broadcast(new StepMessage(TurnStep.SHIFTING));
             });
     }
 
@@ -61,7 +65,7 @@ public class GameServer {
     }
 
     // Threads are locked until everyone is synced
-    private void broadcast(String msg) {
+    private void broadcast(Message msg) {
         for (ClientHandler c : clients) c.send(msg);
     }
 
@@ -80,48 +84,34 @@ public class GameServer {
         return ids;
     }
 
-    // This is the other side of the switch/case statement from GameManager, handles the "commands" for each client and sends to console for debugging
-    // This is also where the Lock happens
-    private void handleLine(ClientHandler from, String line) {
-        String[] p = line.split(" ");
-        if (p.length != 2) return;
-        Message m;
-        try { m = Message.valueOf(p[0]); }
-        catch(IllegalArgumentException e) { return; }
-        switch(m) {
-            case PLAYER_MOVED: {
-                int tile;
-                try { tile = Integer.parseInt(p[1]); } catch (NumberFormatException e) { return; }
-                if (tile < 1 || tile > tileCount) return;
-                synchronized (lock) {
-                    if (!turnManager.isCurrent(from.id) || turnManager.getStep() != TurnStep.MOVING) return;
-                    lastTile.put(from.id, tile);
-                    broadcast(Message.PLAYER_MOVED.name() + " " + from.id +  " " + tile);
-                    turnManager.endTurn(from.id);
-                }
-                break;
-            }
-            case WIN:
-                synchronized (lock) {
-                    broadcast(Message.WIN.name() + " " + p[1]);
-                    turnManager.setStep(null);
-                }
-                break;
-            case SHIFT: 
-                synchronized (lock) {
-                    if (!turnManager.isCurrent(from.id) || turnManager.getStep() != TurnStep.SHIFTING) { return; }
-                    broadcast(Message.SHIFT.name() + " " + p[1]);
-                    turnManager.setStep(TurnStep.MOVING);
-                    broadcast(Message.STEP.name() + " " + TurnStep.MOVING.name());
-                }
-                break;
-            // (empty)
-            case FULL:
-            case BOARD:
-            case WELCOME: 
-            case TURN: 
-            case STEP:
-            case START:
+    @Override
+    public void onPlayerMoved(int from, PlayerMovedMessage m) {
+        if (!turnManager.isCurrent(from) || turnManager.getStep() != TurnStep.MOVING) return;
+
+        int tile = m.getTileID();
+        broadcast(new PlayerMovedMessage(tile, from));
+        turnManager.endTurn(from);
+    }
+
+    @Override 
+    public void onWin(int from, WinMessage m) {
+        broadcast(m);
+        turnManager.setStep(null);
+    }
+
+    @Override 
+    public void onShift(int from, ShiftMessage m) {
+        if (!turnManager.isCurrent(from) || turnManager.getStep() != TurnStep.SHIFTING) { return; }
+        broadcast(m);
+        turnManager.setStep(TurnStep.MOVING);
+        broadcast(new StepMessage(TurnStep.MOVING));
+    }
+
+    @Override 
+    public void onStart(int from) { // Allows host to start the game in the future
+        if (from == 0) {
+            broadcast(new StartNotification());
+            turnManager.refresh();
         }
     }
 
@@ -143,6 +133,7 @@ public class GameServer {
         private final PrintWriter out;
         private final BufferedReader in;
         volatile int id = -1;
+        private NetworkController controller;
 
         ClientHandler(Socket socket) throws IOException {
             this.socket = socket;
@@ -151,7 +142,7 @@ public class GameServer {
             this.in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
         }
 
-        void send(String msg) { out.println(msg); }
+        void send(Message msg) { out.println(msg); }
 
         void close() { try { socket.close(); } catch (IOException ignored) {} }
 
@@ -160,26 +151,32 @@ public class GameServer {
             try {
                 synchronized (lock) {
                     int newId = freeId();
-                    if (newId < 0) { send(Message.FULL.name()); return; }
+                    if (newId < 0) { send(new FullNotification()); return; }
                     id = newId;
-                    send(Message.WELCOME.name() + " " + id);
+                    send(new WelcomeMessage(id));
+                    broadcast(new NewPlayerMessage(id));
                     if (boardMessage != null) send(boardMessage);
-                    for (Map.Entry<Integer, Integer> e : lastTile.entrySet())
-                        send(Message.PLAYER_MOVED.name() + " " + e.getKey() + " " + e.getValue());
                     clients.add(this);
                     if (clients.size() >= 2) { // Don't start until 2+ players
                         if (!gameStarted) { // On first start, notify both host and the other player 
                             gameStarted = true;
-                            broadcast(Message.START.name());
+                            broadcast(new StartNotification());
                         }
                         else { // Afterwards, notify only new players entering
-                            send(Message.START.name());
+                            send(new StartNotification());
                         }
                         turnManager.refresh();
                     }
+                    controller = new NetworkController(GameServer.this, id);
+                    controller.synchronize(lock); 
                 }
                 String line;
-                while ((line = in.readLine()) != null) handleLine(this, line);
+                while ((line = in.readLine()) != null) { 
+                    try {
+                        controller.fire(Message.deserialize(line));
+                    }
+                    catch (MessageDeserializationException _) {}
+                }
             } catch (IOException ignored) {
             } finally {
                 clients.remove(this);

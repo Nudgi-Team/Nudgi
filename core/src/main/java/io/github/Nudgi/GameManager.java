@@ -42,7 +42,6 @@ public class GameManager implements Disposable {
     private final Board board;
     private final Vector2[] winningPositions = new Vector2[4];
     private Player[] players = new Player[4];
-    private int numberOfMoves = 0;
     private final Consumer<Runnable> mainThread;   // runs something on the render thread
     private volatile GameServer server;
     private volatile GameClient client;
@@ -62,7 +61,7 @@ public class GameManager implements Disposable {
     private final Label lobbyLabel = UIService.createLabel("See above for instructions.");
     private final Image lobbyPointer = new Image(new Texture("Arrow.png"));
 
-    private Enemy[] enemies = new Enemy[4];
+    private final Enemy[] enemies = new Enemy[4];
 
     public GameManager(Board board, Stage stage) {
         this(board, stage, r -> Gdx.app.postRunnable(r));
@@ -118,7 +117,13 @@ public class GameManager implements Disposable {
         started = true;
         try {
             Vector2 size = board.getGridSize();
-            server = new GameServer(GameServer.DEFAULT_PORT, players.length, encodeBoard(), (int) (size.x * size.y));
+            server = new GameServer(
+                GameServer.DEFAULT_PORT,
+                players.length,
+                encodeBoard(),
+                (int) (size.x * size.y),
+                this::moveEnemies
+            );
             server.start();
             hostInfo = " - hosting on " + GameServer.getLanAddresses();
             System.out.println("Hosting. Others join with one of: " + GameServer.getLanAddresses());
@@ -309,20 +314,7 @@ public class GameManager implements Disposable {
                     if (playerWon(player) && myId == player.getID().intValue()) {
                         client.send(Message.WIN.name() + " " + player.getID());
                     }
-
-                    if(server != null){
-                        checkForDeath();
-                        numberOfMoves++;
-                        if(numberOfMoves == server.getConnectedPlayerCount()){
-                            for(Enemy enemy : enemies){
-                                enemy.move(board);
-                                int enemyID = enemy.getID();
-                                server.enemyMoved(enemy.getID().intValue(), board.fetchTile(board.getEnemyPosition(enemy)).tileID);
-                            }
-                            numberOfMoves = 0;
-                        }
-                        checkForDeath();
-                    }
+                    checkForDeath();
                     break;
                 }
                 case ENEMY_MOVED:{
@@ -378,7 +370,7 @@ public class GameManager implements Disposable {
         if(server == null) return;
         for(Enemy enemy : enemies){
             for(Player player : players){
-                if (board.getPlayerPosition(player).epsilonEquals(board.getEnemyPosition(enemy))){
+                if (board.getPlayerPosition(player).equals(board.getEnemyPosition(enemy))){
                     Vector2 newPos;
                     do{
                         newPos = board.getRandomValidPos();
@@ -389,6 +381,16 @@ public class GameManager implements Disposable {
         }
     }
 
+    public void moveEnemies(){
+        if(server != null){
+            for(Enemy enemy : enemies){
+                System.out.println("Moving Enemy: " + enemy.getID());
+                enemy.move(board);
+                server.enemyMoved(enemy.getID().intValue(), board.fetchTile(board.getEnemyPosition(enemy)).tileID);
+            }
+            checkForDeath();
+        }
+    }
 
     private void generateRandomMovement() {
         int currentMovement = ThreadLocalRandom.current().nextInt(1, 7);
@@ -436,7 +438,7 @@ public class GameManager implements Disposable {
                 return e;
             }
         }
-        throw new IllegalArgumentException("Failed to find player with id " + id);
+        throw new IllegalArgumentException("Failed to find enemy with id " + id);
     }
 
     private void handlePlayerClick(int targetPlayerID) {

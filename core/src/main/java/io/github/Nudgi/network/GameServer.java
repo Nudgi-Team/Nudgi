@@ -18,18 +18,22 @@ public class GameServer {
     private ServerSocket serverSocket;
     private volatile boolean running;
     private boolean gameStarted = false;
+    private final Runnable enemyMoveCallback;
 
     // Standard server attributes
-    public GameServer(int port, int maxPlayers, String boardMessage, int tileCount) {
+    public GameServer(int port, int maxPlayers, String boardMessage, int tileCount, Runnable enemyMoveCallback) {
         this.port = port;
         this.maxPlayers = maxPlayers;
         this.boardMessage = boardMessage;
         this.tileCount = tileCount; // Allows for dynamic board sizes in the future
+        this.enemyMoveCallback = enemyMoveCallback;
         this.turnManager = new TurnManager(lock, TurnManager.DEFAULT_TURN_MILLIS, this::connectedIds,
             (id, ms) -> {
                 broadcast(Message.TURN.name() + " " + id + " " + ms);
                 broadcast(Message.STEP.name() + " " + TurnStep.SHIFTING.name());
-            });
+            },
+                enemyMoveCallback
+            );
     }
 
     public void start() throws IOException {

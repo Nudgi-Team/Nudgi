@@ -31,15 +31,18 @@ public class TurnManager {
     private long token;
     private ScheduledFuture<?> timeout;
 
+    private final Runnable onRoundEnd;
+
     // null = no player may perform any action (useful later on when animations need to play)
     // any non-null value = the turn player may perform the designated action
-    private volatile TurnStep step = null; 
+    private volatile TurnStep step = null;
 
-    public TurnManager(Object lock, long turnMillis, Supplier<Collection<Integer>> connected, BiConsumer<Integer, Long> onTurn) {
+    public TurnManager(Object lock, long turnMillis, Supplier<Collection<Integer>> connected, BiConsumer<Integer, Long> onTurn, Runnable onRoundEnd) {
         this.lock = lock;
         this.turnMillis = turnMillis;
         this.connected = connected;
         this.onTurn = onTurn;
+        this.onRoundEnd = onRoundEnd;
     }
 
     public void refresh() {
@@ -92,6 +95,12 @@ public class TurnManager {
             return;
         }
         Integer next = ids.higher(current);
+        System.out.println("Current: " + current);
+        System.out.println("Next: " + next);
+        if(next == null && current != -1){
+            onRoundEnd.run();
+        }
+
         startTurn(next != null ? next : ids.first());
     }
 

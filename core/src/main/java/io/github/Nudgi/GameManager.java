@@ -11,20 +11,16 @@ import java.util.function.Consumer;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Disposable;
 
 import io.github.Nudgi.entities.Player;
 import io.github.Nudgi.entities.PlayerManager;
 import io.github.Nudgi.entities.ShiftID;
 import io.github.Nudgi.entities.Tile;
-import io.github.Nudgi.entities.TrivialEntity;
 import io.github.Nudgi.network.GameClient;
 import io.github.Nudgi.network.GameServer;
 import io.github.Nudgi.network.TurnStep;
@@ -33,13 +29,14 @@ import io.github.Nudgi.ui.UIManager;
 import io.github.Nudgi.ui.UIService;
 import io.github.Nudgi.ui.StageManager.Mode;
 import io.github.Nudgi.ui.game.BoardUI;
+import io.github.Nudgi.ui.game.FullScreenPopUpUI;
+import io.github.Nudgi.ui.lobby.LobbyUI;
 import io.github.Nudgi.network.protocol.*;
 import io.github.Nudgi.network.protocol.Message.MessageDeserializationException;
 import io.github.Nudgi.network.protocol.TreasureMessage.Delta;
 
 public class GameManager implements Disposable, MessageHandler {
     private final Board board;
-    private final Vector2[] winningPositions = new Vector2[4];
     private final Consumer<Runnable> mainThread;   // runs something on the render thread
     private volatile GameServer server;
     private volatile GameClient client;
@@ -69,12 +66,15 @@ public class GameManager implements Disposable, MessageHandler {
         this.board = board;
         this.ui = new UIManager(board);
         
+        StageManager.setStageMode(Mode.LOBBY);
+        LobbyUI lobby = ui.getLobbyUI();
+        lobby.onDevModeClick(this::beginDevMode);
+        lobby.onStartClick(() -> client.send(new StartNotification()));
+
         STAGE.addListener(new InputListener() {
             @Override public boolean keyTyped(InputEvent event, char c) { return handleTypedChar(c); }
             @Override public boolean keyDown(InputEvent event, int keycode) { return handleKeyDown(keycode); }
         });
-        StageManager.setStageMode(Mode.LOBBY);
-        ui.onDevMode(this::beginDevMode);
     }
 
     public void update() {
@@ -84,7 +84,7 @@ public class GameManager implements Disposable, MessageHandler {
         }
         String s = status;
         if (networked() && turnId >= 0) {
-            s += myTurn() ? "  |  YOUR TURN" : "  |  Player " + getPlayerDisplayID(turnId) + "'s turn";
+            s += myTurn() ? "  |  YOUR TURN" : "  |  " + PlayerManager.fetchPlayer(turnId) + "'s turn";
             turnPlayerLabel.setText(s);
         }
         if (!s.equals(shownStatus)) {
@@ -108,31 +108,6 @@ public class GameManager implements Disposable, MessageHandler {
             results[i] = new TreasureTileInfo(i, tiles[i].getID());
         }
         return results;
-    }
-
-    // Standard TCP LAN Connection
-    public void host() {
-        if (started) return;
-        started = true;
-        try {
-            Vector2 size = board.getGridSize();
-            server = new GameServer(GameServer.DEFAULT_PORT, PlayerManager.MAX_PLAYERS, new BoardMessage(board.getAllPaths(), generateTreasures()), (int) (size.x * size.y));
-            server.start();
-            hostInfo = " - hosting on " + GameServer.getLanAddresses();
-            System.out.println("Hosting. Others join with one of: " + GameServer.getLanAddresses());
-            connectTo("127.0.0.1"); // Lets the game start hosted "offline" so the game doesn't just freeze
-        } catch (IOException e) {
-            status = "Host failed: " + e.getMessage();
-            server = null;
-            started = false;
-        }
-    }
-
-
-    public void join(String hostAddress) {
-        if (started) return;
-        started = true;
-        connectTo(hostAddress);
     }
 
     private void beginDevMode() {
@@ -231,6 +206,32 @@ public class GameManager implements Disposable, MessageHandler {
         }, "GameClient-connect").start();
     }
 
+    // Standard TCP LAN Connection
+    public void host() {
+        if (started) return;
+        started = true;
+        try {
+            Vector2 size = board.getGridSize();
+            server = new GameServer(GameServer.DEFAULT_PORT, PlayerManager.MAX_PLAYERS, new BoardMessage(board.getAllPaths(), generateTreasures()), (int) (size.x * size.y));
+            server.start();
+            hostInfo = " - hosting on " + GameServer.getLanAddresses();
+            System.out.println("Hosting. Others join with one of: " + GameServer.getLanAddresses());
+            connectTo("127.0.0.1"); // Lets the game start hosted "offline" so the game doesn't just freeze
+        } catch (IOException e) {
+            status = "Host failed: " + e.getMessage();
+            server = null;
+            started = false;
+        }
+    }
+
+
+    public void join(String hostAddress) {
+        if (started) return;
+        started = true;
+        connectTo(hostAddress);
+    }
+
+
     private void onDisconnected() {
         client = null;
         myId = -1;
@@ -254,7 +255,8 @@ public class GameManager implements Disposable, MessageHandler {
         myId = m.getNewID();
         status = "You are player " + getPlayerDisplayID(myId) + hostInfo;
         if (server != null) {
-            ui.lobbyWaitingMode();
+            LobbyUI lobby = ui.getLobbyUI();
+            lobby.waitingMode();
         }
     }
 
@@ -319,7 +321,7 @@ public class GameManager implements Disposable, MessageHandler {
     @Override 
     public void onNewPlayer(int from, NewPlayerMessage m) {
         int newPlayerID = m.getNewPlayerID();
-        Player newPlayer = PlayerManager.create(false, newPlayerID == myId, newPlayerID);
+        Player newPlayer = PlayerManager.create(newPlayerID == 0, newPlayerID == myId, newPlayerID);
         board.initializePlayer(newPlayer);
     }
 
@@ -361,9 +363,7 @@ public class GameManager implements Disposable, MessageHandler {
         int currentMovement = ThreadLocalRandom.current().nextInt(1, 7);
 
         Set<Vector2> visited = board.pathFind(board.getPlayerPosition(PlayerManager.getYourself()), currentMovement);
-        System.out.println("Targets:");
         for (Vector2 moveEligible: visited) {
-            System.out.println(moveEligible);
             board.fetchTile(moveEligible).setHighlighted(true);
         }
     }
@@ -378,7 +378,6 @@ public class GameManager implements Disposable, MessageHandler {
     }
 
     private void handleTurnStep(TurnStep newStep) {
-        System.out.println("STEP: " + newStep.name());
         switch(newStep) {
             case SHIFTING -> {
                 // In the future, you could put an animation for the arrows here
@@ -400,7 +399,7 @@ public class GameManager implements Disposable, MessageHandler {
         
         Player player = PlayerManager.getYourself();
         target.tile().getTreasure().ifPresent(value -> {
-            System.out.println("Landed on treasure " + value);
+            System.out.println("Landed on treasure " + (value + 1));
             if (player.canCollectTreasure(value)) {
                 client.send(new TreasureMessage(myId, Delta.COLLECT));
             }
@@ -415,34 +414,21 @@ public class GameManager implements Disposable, MessageHandler {
 
     private void endGame(String withMessage) {
         status = "Game has ended";
-        Texture background = new Texture("EmptyTile.png");
-        Label message = UIService.createLabel(withMessage);
-        TextButton baseButton = UIService.createTextButton("Exit", background, null, null);
-        Vector2 topRight = StageManager.getWorldSize();
-        new TrivialEntity<>(baseButton, Gdx.app::exit);
-
-        message.setFontScale(1.7f);
-        UIService.centerWidget(message, true, false);
-        message.setY(topRight.y/1.7f);
-
-        baseButton.setTransform(true);
-        baseButton.setScale(3);
-        baseButton.setPosition(topRight.x/2 - baseButton.getWidth()*1.5f, topRight.y/2.5f - baseButton.getHeight());
-        UIService.modifyTextButtonStyle(baseButton, style -> style.fontColor = Color.BLACK);
-
         STAGE.clear();
-        STAGE.addActor(message);
-        STAGE.addActor(baseButton);
+        var exitScreen = new FullScreenPopUpUI(withMessage, "Exit", Gdx.app::exit);
+        exitScreen.show();
     }
 
     private void applyMove(Player p, Vector2 newPos) {
         board.movePlayer(p, newPos);
-        System.out.println("MOVED " + p + " to " + newPos);
     }
 
-
     private boolean playerWon(Player p) {
-        return board.getPlayerPosition(p).epsilonEquals(winningPositions[p.getID()]);
+        return p.getTreasureCount() == 0 && board.playerOnPosition(p, getPlayerStartPos(p));
+    }
+
+    private Vector2 getPlayerStartPos(Player player) {
+        return board.cornerToGrid(player.getStartingCorner());
     }
 
     private int getPlayerDisplayID(int fromId) {

@@ -19,7 +19,17 @@ public class UIManager {
     }
 
     public GameUI getGameUI() {
+        if (StageManager.getStageMode() != Mode.GAME) {
+            throw new IllegalStateException("Not in game");
+        }
         return new GameUI(treasureUi, boardUi);
+    }
+
+    public LobbyUI getLobbyUI() {
+        if (StageManager.getStageMode() != Mode.LOBBY) {
+            throw new IllegalStateException("Not in lobby");
+        }
+        return lobby;
     }
 
     private void setMode(Mode mode) {
@@ -31,19 +41,17 @@ public class UIManager {
 
     private void setToLobby() {
         lobby = new LobbyUI();
+        lobby.show();
     }
 
     private void setToGame() {
+        if (lobby != null) { lobby.dispose(); }
+        lobby = null;
         treasureUi = new TreasureUI();
         boardUi = new BoardUI(board);
-    }
-
-    public void onDevMode(Runnable... listeners) {
-        lobby.onDevMode(listeners);
-    }
-
-    public void lobbyWaitingMode() {
-        lobby.waitingMode();
+        
+        treasureUi.show();
+        boardUi.show();
     }
 
     public record GameUI(TreasureUI treasure, BoardUI board) {}

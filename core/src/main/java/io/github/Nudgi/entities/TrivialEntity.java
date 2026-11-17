@@ -10,8 +10,6 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
  * knowing which button is clicked, only <i>that</i> it was clicked.
  * <p>
  * No identifier is used.
- * Instead, all Consumers within this 
- * implementation always receive {@code null} as an argument.
  * 
  * 
  * @param <A> actor type
@@ -19,23 +17,24 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
  * constructor, which allow you to use methods with no arguments as callbacks.
  * @see Entity
  * @deprecated Entity no longer has identity semantics, making this class obsolete.
- * Uses of this class may be replaced by {@link Entity} directly.
+ * Uses of this class may be replaced by the
+ * {@link io.github.Nudgi.ui.OnClickListener OnClickListener} class.
  */
-@Deprecated (forRemoval = true)
+@Deprecated(forRemoval = true)
 public class TrivialEntity<A extends Actor> extends Entity<A> {
-    @Deprecated (forRemoval = true)
+    @Deprecated(forRemoval = true)
     public TrivialEntity(A actor) {
         super(actor);
     }
 
-    @Deprecated (forRemoval = true)
+    @Deprecated(forRemoval = true)
     @SuppressWarnings("removal")
     public TrivialEntity(A actor, Runnable... listeners) {
         this(actor);
         addListener(listeners);
     }
 
-    @Deprecated (forRemoval = true)
+    @Deprecated(forRemoval = true)
     public void addListener(Runnable... listeners) {
         addListeners(listeners);
     }

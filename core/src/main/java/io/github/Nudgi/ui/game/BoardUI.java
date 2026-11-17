@@ -5,33 +5,32 @@ import static io.github.Nudgi.ui.StageManager.STAGE;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
-import com.badlogic.gdx.math.Vector2;
-
 import io.github.Nudgi.Board;
 import io.github.Nudgi.entities.Player;
 import io.github.Nudgi.entities.PlayerManager;
 import io.github.Nudgi.entities.ShiftID;
+import io.github.Nudgi.ui.Showable;
 
-public class BoardUI {
+public class BoardUI implements Showable {
+    private final Board boardState;
     private IntConsumer tileListener = _ -> {};
     private Consumer<ShiftID> arrowListener = _ -> {};
 
-    public BoardUI(Board board) {        
-        Player[] players = PlayerManager.getPlayers();
-        for (Player player: players) {
-            Vector2 boardCornerPos = board.cornerToGrid(player.getStartingCorner());
-            Vector2 worldPos = board.toWorldPos(boardCornerPos);
-            float tileSize = board.getTileSize();
+    public BoardUI(Board board) {
+        boardState = board;
+        board.forEachTile((_, tile) -> tile.addListeners(() -> tileListener.accept(tile.getID())));
+        board.forEachArrow(arrow -> arrow.addListeners(() -> arrowListener.accept(arrow.getID())));
+    }
 
-            player.setPosition(worldPos);
+    @Override 
+    public void show() {
+        for (Player player: PlayerManager.getPlayers()) {
+            float tileSize = boardState.getTileSize();
             player.setSizeSquare(tileSize*0.9f);
-            STAGE.addActor(player.getActor());
-            
-            board.forEachTile((_, tile) -> STAGE.addActor(tile.getActor()));
-            board.forEachArrow(arrow -> STAGE.addActor(arrow.getActor()));
-            board.forEachTile((_, tile) -> tile.addListeners(() -> tileListener.accept(tile.getID())));
-            board.forEachArrow(arrow -> arrow.addListeners(() -> arrowListener.accept(arrow.getID())));
         }
+        
+        boardState.forEachTile((_, tile) -> STAGE.addActor(tile.getActor()));
+        boardState.forEachArrow(arrow -> STAGE.addActor(arrow.getActor()));
     }
 
     public void onTileClicked(IntConsumer action) {

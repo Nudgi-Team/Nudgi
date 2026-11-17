@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.utils.Align;
 
 import io.github.Nudgi.ui.UIService;
 
@@ -21,7 +22,8 @@ public final class TreasureManager {
     static {
         for (int i = 0; i < TREASURES.length; i++) {
             TREASURES[i] = UIService.createLabel("T" + (i+1));
-            TREASURES[i].setFontScale(0.5f);
+            TREASURES[i].setFontScale(0.7f);
+            TREASURES[i].setAlignment(Align.center);
             TREASURE_IDS[i] = i;
             available.add(i);
         }

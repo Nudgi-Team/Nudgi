@@ -29,17 +29,7 @@ public final class TreasureMessage extends Message {
     }
 
     public enum Delta {
-        COLLECT (-1),
-        LOSE (1);
-
-        private final int delta;
-
-        private Delta(int deltaValue) {
-            delta = deltaValue;
-        }
-
-        public int deltaValue() {
-            return delta;
-        }
+        COLLECT,
+        LOSE; // Enemies
     }
 }

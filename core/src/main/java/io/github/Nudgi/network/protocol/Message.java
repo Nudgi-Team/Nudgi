@@ -123,9 +123,9 @@ import io.github.Nudgi.network.protocol.config.SourceContext;
  * <p>
  * By definition, only subclasses taking Option 2 above may have contextual values.
  * 
- * @see Message#Message(SourceContext)
  * @see Notification
- * @see Message#serialized()
+ * @see Message#toString()
+ * @see Message#deserialize(String)
  * @java 17
  */
 public abstract sealed class Message
@@ -278,7 +278,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
         catch(InvocationTargetException e) {
             throw new ExceptionInDeserializerException(
                 "Error during deserialization: " + e.getCause() + '\n'
-                + "With arguments: " + formatArgumentErrorDump(args), e);
+                + "With arguments: " + formatArgumentErrorDump(args), e.getCause());
         }
         catch(NoSuchMethodException | IllegalAccessException | InstantiationException impossible) {
             throw new IllegalStateException(impossible);
@@ -308,6 +308,8 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
      * @throws ExceptionInDeserializerException if an exception is thrown in the Message's
      * deserialization constructor.
      * @throws IllegalStateException if an unexpected internal error occurs.
+     * @throws NullPointerException if {@code input == null}
+     * @see MessageDeserializationException
      */
     public static Message deserialize(String input) throws NotAMessageException, ExceptionInDeserializerException {
         String[] fullArgs = input.split(DELIMITER_STR, -1);
@@ -343,7 +345,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
      * <p>
      * It is an error for any element of the returned array to contain the {@link Message#DELIMITER}
      * character, or for any element of the returned array to be {@code null}, or for the 
-     * array to be {@code null}.
+     * array itself to be {@code null}.
      * <p>
      * Empty strings will be preserved.
      *
@@ -359,7 +361,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
      * @param arrays the intermediate results to combine.
      * @return a new array containing the lengths of
      * all provided arrays if {@code prependLengths} is {@code true}, followed by
-     * each String value within {@code arrays}, in the order provided.
+     * each String value within each element of {@code arrays}, in the order provided.
      * @apiNote The prependLengths argument is designed for use with {@link #slice(String[], int)},
      * the inverse of this method. When using this parameter alongside {@code slice},
      * the {@code numSlices} parameter in that method should always be the number 
@@ -419,6 +421,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
 
     private String buildPayload() {
         String[] args = serialized();
+        if (args == null) { throw new BadMessageException("payload may not be null"); }
         for (int i = 0; i < args.length; i++) {
             if (args[i] == null || args[i].contains(DELIMITER_STR)) {
                 throw new BadMessageException(i, args[i] == null);
@@ -481,6 +484,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
         /**
          * Unconditionally sets the value within this Contextual.
          * @param value the new value.
+         * @see #contextualSet(Supplier)
          */
         public void set(T value) {
             this.value = value;
@@ -494,7 +498,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
          */
         public T get() {
             if (!contextMatches()) {
-                throw new ContextMismatchException();
+                throw new ContextMismatchException(context, Message.this.getSource());
             }
             return value;
         }
@@ -534,10 +538,14 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
      * Thrown when serialized forms of subclasses are erroneous.
      */
     public static class BadMessageException extends RuntimeException {
-        public BadMessageException(int offendingIndex, boolean nullMode) {
-            super((nullMode) 
+        private BadMessageException(int offendingIndex, boolean nullMode) {
+            this((nullMode) 
                 ? "error: Element at index " + offendingIndex + " is null"
                 : "error: Element at index " + offendingIndex + " contains the prohibited delimiter character");
+        }
+        
+        public BadMessageException(String message) {
+            super(message);
         }
     }
 
@@ -547,8 +555,12 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
      * being accessed in a Message with a context of {@link SourceContext#SERVER}).
      */
     public static class ContextMismatchException extends RuntimeException {
-        public ContextMismatchException() {
-            super(CONTEXT_MISMATCH);
+        private ContextMismatchException(SourceContext expected, SourceContext actual) {
+            this(CONTEXT_MISMATCH + "(expected " + expected + " got " + actual + ")");
+        }
+
+        public ContextMismatchException(String message) {
+            super(message);
         }
     }
     
@@ -586,9 +598,8 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
     /**
      * Thrown when an attempt is made to deserialize a string that cannot
      * be recognized as a Message.
-     * @see MessageDeserializationException
      */
-    public static final class NotAMessageException extends MessageDeserializationException {
+    public static non-sealed class NotAMessageException extends MessageDeserializationException {
         public NotAMessageException(String message) {
             super(message);
         }
@@ -600,9 +611,8 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
 
     /**
      * Thrown when an exception occurs in a Deserialization Constructor.
-     * @see MessageDeserializationException
      */
-    public static final class ExceptionInDeserializerException extends MessageDeserializationException {
+    public static non-sealed class ExceptionInDeserializerException extends MessageDeserializationException {
         public ExceptionInDeserializerException(String message) {
             super(message);
         }

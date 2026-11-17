@@ -116,7 +116,6 @@ public class Board {
     }
 
     public void shift(int index, Direction direction) {
-        System.out.println("Shifted on index " + index + " " + direction);
         Tile wrap;
 
         switch (direction) {
@@ -233,7 +232,12 @@ public class Board {
     public void initializePlayer(Player p) {
         Vector2 startingLocation = cornerToGrid(p.getStartingCorner());
         Tile start = fetchTile(startingLocation);
+        p.setPosition(toWorldPos(startingLocation));
         start.addPlayer(p);
+    }
+
+    public boolean playerOnPosition(Player player, Vector2 pos) {
+        return getPlayerPosition(player).epsilonEquals(pos);
     }
 
     public int[] getAllPaths() {
@@ -261,8 +265,9 @@ public class Board {
 
     public void placeTreasures(TreasureTileInfo[] treasures) {
         for (TreasureTileInfo info: treasures) {
-            Tile target = fetchTile(info.targetTileID()).tile();
-            target.addTreasure(info.treasureKind());
+            TileInfo target = fetchTile(info.targetTileID());
+            int treasure = info.treasureKind();
+            target.tile().addTreasure(treasure);
         }
     }
 
@@ -299,7 +304,7 @@ public class Board {
 
     private List<Tile> flattened() {
         List<Tile> tiles = new ArrayList<>();
-        forEachTile((__, tile) -> tiles.add(tile));
+        forEachTile((_, tile) -> tiles.add(tile));
         return tiles;
     }
 

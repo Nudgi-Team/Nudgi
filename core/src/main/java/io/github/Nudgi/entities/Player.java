@@ -8,6 +8,8 @@ import java.util.Optional;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.Null;
 
 import io.github.Nudgi.Corner;
@@ -19,9 +21,8 @@ import io.github.Nudgi.Corner;
  * - host: This player represents the host, or server, of the session.
  * - you: This player represents "you", defined as the Player object representing this client.
  */
-public class Player extends Entity<Image> {
-    private static final Texture playerTexture = new Texture("Player.png");
-
+public class Player extends Entity<Image> implements Disposable {
+    private final Texture playerTexture = new Texture("Player.png");
     private final int playerID;
     private final boolean host;
     private final boolean you;
@@ -38,7 +39,8 @@ public class Player extends Entity<Image> {
      * @param isYou whether this player is "you".
      */
     public Player(int playerID, Corner corner, boolean isHost, boolean isYou) {   
-        super(new Image(playerTexture));
+        super(new Image());
+        getActor().setDrawable(new TextureRegionDrawable(playerTexture));
         this.playerID = playerID;
         startingCorner = corner;
         host = isHost;
@@ -78,6 +80,7 @@ public class Player extends Entity<Image> {
         for (int i = 0; i < treasures.length; i++) {
             treasuresToHunt.add(treasures[i]);
         }
+        treasuresChangedListeners.forEach(Runnable::run);
     }
 
 
@@ -126,5 +129,10 @@ public class Player extends Entity<Image> {
      */
     public int getTreasureCount() {
         return treasuresToHunt.size();
+    }
+
+    @Override 
+    public void dispose() {
+        playerTexture.dispose();
     }
 }

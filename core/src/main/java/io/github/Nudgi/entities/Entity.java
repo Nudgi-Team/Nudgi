@@ -2,7 +2,6 @@ package io.github.Nudgi.entities;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -11,22 +10,21 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
 
 /**
- * Represents a clickable actor.
+ * Represents a clickable actor. The constructors of this class
+ * automatically attach a ClickListener to the actor provided.
  * 
- * Identifiers are no longer supported.
+ * Identifiers are no longer supported. 
  * 
  * @param <A> actor type
  * @apiNote Remember that for any Actor to show up, including the one within an Entity,
  * you must add it to a {@code Stage}!
- * @see TrivialEntity
- * @see Consumer
  * @see io.github.Nudgi.ui.StageManager
  */
 public class Entity<A extends Actor> {
     private final List<Runnable> listeners = new ArrayList<>();
     private final A actor;
     private boolean paused;
-    
+
     public Entity(A actor) {
         this.actor = actor;
         actor.addListener(new ClickDetector());

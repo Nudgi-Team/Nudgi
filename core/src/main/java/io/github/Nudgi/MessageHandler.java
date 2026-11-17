@@ -5,8 +5,8 @@ import io.github.Nudgi.network.protocol.*;
 /**
  * Provides reactions to events, alongside their message objects for
  * non-notification messages.
- * <p>
- * The methods of this interface conventionally begin with the word "on", followed
+ * 
+ * @apiNote The methods of this interface conventionally begin with the word "on", followed
  * by the name of the Message they respond to, without the word "Message"
  * or "Notification" (e.g. PlayerMovedMessage -> onPlayerMoved). 
  */

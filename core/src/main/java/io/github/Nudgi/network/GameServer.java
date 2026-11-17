@@ -116,9 +116,12 @@ public class GameServer implements MessageHandler {
 
     @Override 
     public void onStart(int from) {
-        if (from == 0) {
-            broadcast(new StartNotification());
-            turnManager.refresh();
+        if (from != 0) { return; }
+        broadcast(new StartNotification());
+        turnManager.refresh();
+        for (ClientHandler client: clients) {
+            int[] assignments = TreasureManager.randomTreasures(TREASURES_PER_PLAYER);
+            broadcast(new TreasureInitMessage(assignments, client.id));
         }
     }
 
@@ -153,22 +156,29 @@ public class GameServer implements MessageHandler {
 
         void close() { try { socket.close(); } catch (IOException ignored) {} }
 
+        void newPlayerNotify() {
+            broadcast(new NewPlayerMessage(id));
+            for (ClientHandler client: clients) {
+                if (client == this) continue;
+                send(new NewPlayerMessage(client.id));
+            }
+        }
+
         @Override
         public void run() {
             try {
                 synchronized (lock) {
+                    clients.add(this);
+
                     int newId = freeId();
                     if (newId < 0) { send(new FullNotification()); return; }
                     id = newId;
+
                     send(new WelcomeMessage(id));
-                    broadcast(new NewPlayerMessage(id));
-
                     if (boardMessage != null) send(boardMessage);
-                    clients.add(this);
 
-                    int[] assignments = TreasureManager.randomTreasures(TREASURES_PER_PLAYER);
+                    newPlayerNotify();
 
-                    broadcast(new TreasureInitMessage(assignments, id));
                     controller = new NetworkController(GameServer.this, id);
                     controller.synchronize(lock); 
                 }

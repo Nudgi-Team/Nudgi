@@ -11,6 +11,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
  * A stateful ClickListener that allows for functional interface semantics
  * when attaching hooks. This allows behavior to be injected dynamically
  * much easier.
+ * @see OnInputListener
  */
 public class OnClickListener extends ClickListener {
     private static final Consumer<ClickEvent> DEFAULT_ACTION = _ -> {};

@@ -10,8 +10,12 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 
 import io.github.Nudgi.entities.Player;
+import io.github.Nudgi.entities.PowerUp;
+import io.github.Nudgi.entities.PowerUpTileInfo;
 import io.github.Nudgi.entities.ShiftArrow;
 import io.github.Nudgi.entities.Tile;
+import io.github.Nudgi.entities.TileInfo;
+import io.github.Nudgi.entities.TreasureTileInfo;
 import io.github.Nudgi.entities.ShiftID;
 
 public class Board {
@@ -268,6 +272,14 @@ public class Board {
             TileInfo target = fetchTile(info.targetTileID());
             int treasure = info.treasureKind();
             target.tile().addTreasure(treasure);
+        }
+    }
+
+    public void placePowerUps(PowerUpTileInfo[] powerUps) {
+        for (PowerUpTileInfo info: powerUps) {
+            TileInfo target = fetchTile(info.onTileID());
+            PowerUp powerUp = info.powerUp();
+            target.tile().addPowerup(powerUp);
         }
     }
 

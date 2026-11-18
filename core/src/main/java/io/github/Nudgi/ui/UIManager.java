@@ -45,7 +45,6 @@ public class UIManager {
     }
 
     private void setToGame() {
-        if (lobby != null) { lobby.dispose(); }
         lobby = null;
         treasureUi = new TreasureUI();
         boardUi = new BoardUI(board);

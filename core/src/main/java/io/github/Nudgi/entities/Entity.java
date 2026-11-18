@@ -10,41 +10,28 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
 
 /**
- * Abstract class containing methods faciliating
- * responses to clicks detected on the given Actor, as well as resizing operations.
- * Responses are added via {@link IdentifyingListener IdentifyingListeners},
- * which allow for the identification of the entity that was clicked.
- *
- * @param <T> identifier type, or {@link Void} for entities without identifiers
+ * Represents a clickable actor. The constructors of this class
+ * automatically attach a ClickListener to the actor provided.
+ * 
+ * Identifiers are no longer supported. 
+ * 
  * @param <A> actor type
  * @apiNote Remember that for any Actor to show up, including the one within an Entity,
- * you must add it to a {@code Stage}! 
- * This can be done using something such as: 
- * <pre>
- * {@code stage.addActor(myEntity.getActor());}
- * </pre>
- * @see TrivialEntity
- * @see IdentifyingListener
+ * you must add it to a {@code Stage}!
+ * @see io.github.Nudgi.ui.StageManager
  */
-public abstract class Entity<T, A extends Actor> {
-    private final List<IdentifyingListener<T>> listeners = new ArrayList<>();
+public class Entity<A extends Actor> {
+    private final List<Runnable> listeners = new ArrayList<>();
     private final A actor;
-    private final T id;
     private boolean paused;
 
-    protected Entity(A actor, T id) {
+    public Entity(A actor) {
         this.actor = actor;
-        this.id = id;
         actor.addListener(new ClickDetector());
     }
 
-    protected Entity(A actor, T id, IdentifyingListener<T> listener) {
-        this(actor, id);
-        addListener(listener);
-    }
-
-    protected Entity(A actor, T id, List<IdentifyingListener<T>> listeners) {
-        this(actor, id);
+    public Entity(A actor, Runnable... listeners) {
+        this(actor);
         addListeners(listeners);
     }
 
@@ -52,16 +39,8 @@ public abstract class Entity<T, A extends Actor> {
         return actor;
     }
 
-    public T getID() {
-        return id;
-    }
-
-    public final void addListener(IdentifyingListener<T> listener) {
-        if (listener != null) { listeners.add(listener); }
-    }
-
-    public final void addListeners(List<IdentifyingListener<T>> listeners) {
-        for (IdentifyingListener<T> listener: listeners) { addListener(listener); }
+    public final void addListeners(Runnable... listeners) {
+        this.listeners.addAll(List.of(listeners));
     }
 
     public final void clearListeners() {
@@ -101,10 +80,14 @@ public abstract class Entity<T, A extends Actor> {
     public Vector2 getSize() {
         return new Vector2(actor.getWidth(), actor.getHeight());
     }
+
+    public void setSizeSquare(float sideLength) {
+        actor.setSize(sideLength, sideLength);
+    }
     
     @Override 
     public String toString() {
-        return String.format("ENTITY with Actor %s and ID %sn", actor.toString(), id.toString())
+        return String.format("ENTITY with Actor %s\n", actor.toString())
             + String.format("position: %s\n", getPosition())
             + String.format("origin: %s\n", getOrigin())
             + String.format("scale: %s\n", getScale())
@@ -115,9 +98,7 @@ public abstract class Entity<T, A extends Actor> {
         @Override 
         public void clicked(InputEvent event, float x, float y) { 
             if (paused) { return; }
-            for (IdentifyingListener<T> listener: listeners) {
-                listener.onClick(id);
-            }
+            listeners.forEach(Runnable::run);
         }
     }
 }

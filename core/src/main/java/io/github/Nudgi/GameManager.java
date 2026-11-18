@@ -1,48 +1,42 @@
 package io.github.Nudgi;
 
 
+import static io.github.Nudgi.ui.StageManager.STAGE;
+import static io.github.Nudgi.ui.StageManager.VIEW;
+
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
-import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Disposable;
-import com.badlogic.gdx.utils.viewport.Viewport;
 
 import io.github.Nudgi.entities.Player;
-import io.github.Nudgi.entities.TrivialEntity;
-import io.github.Nudgi.entities.ShiftArrow.ShiftID;
+import io.github.Nudgi.entities.PlayerManager;
+import io.github.Nudgi.entities.ShiftID;
+import io.github.Nudgi.entities.Tile;
 import io.github.Nudgi.network.GameClient;
 import io.github.Nudgi.network.GameServer;
 import io.github.Nudgi.network.TurnStep;
-
+import io.github.Nudgi.ui.StageManager;
+import io.github.Nudgi.ui.UIManager;
+import io.github.Nudgi.ui.UIService;
+import io.github.Nudgi.ui.StageManager.Mode;
+import io.github.Nudgi.ui.game.BoardUI;
+import io.github.Nudgi.ui.game.FullScreenPopUpUI;
+import io.github.Nudgi.ui.lobby.LobbyUI;
 import io.github.Nudgi.network.protocol.*;
 import io.github.Nudgi.network.protocol.Message.MessageDeserializationException;
+import io.github.Nudgi.network.protocol.TreasureMessage.Delta;
 
 public class GameManager implements Disposable, MessageHandler {
-    private static final Map<Vector2, Vector2> BASE_MAPPINGS = new HashMap<>();
-    static {
-        BASE_MAPPINGS.put(Vector2.Zero, Vector2.One);
-        BASE_MAPPINGS.put(Vector2.One, Vector2.Zero);
-        BASE_MAPPINGS.put(Vector2.X, Vector2.Y);
-        BASE_MAPPINGS.put(Vector2.Y, Vector2.X);
-    }
     private final Board board;
-    private final Vector2[] winningPositions = new Vector2[4];
-    private Player[] players = new Player[4];
     private final Consumer<Runnable> mainThread;   // runs something on the render thread
     private volatile GameServer server;
     private volatile GameClient client;
@@ -60,31 +54,27 @@ public class GameManager implements Disposable, MessageHandler {
     private final Label turnStepLabel = UIService.createLabel(null);
     private boolean devMode = false;
     private Consumer<Message> dispatcher;
-    private Label lobbyLabel = UIService.createLabel("See instructions above.");
-    private Image lobbyPointer = new Image(new Texture("EmptyTile.png"));
-    private final Stage stage;
+    private UIManager ui;
     
-    public GameManager(Board board, Stage stage) {  
-        this(board, stage, r -> Gdx.app.postRunnable(r));
+    
+    public GameManager(Board board) {
+        this(board, r -> Gdx.app.postRunnable(r));
     }
 
-    public GameManager(Board board, Stage stage, Consumer<Runnable> mainThread) {
+    public GameManager(Board board, Consumer<Runnable> mainThread) {
         this.mainThread = mainThread;
         this.board = board;
-        this.stage = stage;
-        stage.addListener(new InputListener() {
+        this.ui = new UIManager(board);
+        
+        StageManager.setStageMode(Mode.LOBBY);
+        LobbyUI lobby = ui.getLobbyUI();
+        lobby.onDevModeClick(this::beginDevMode);
+        lobby.onStartClick(() -> client.send(new StartNotification()));
+
+        STAGE.addListener(new InputListener() {
             @Override public boolean keyTyped(InputEvent event, char c) { return handleTypedChar(c); }
             @Override public boolean keyDown(InputEvent event, int keycode) { return handleKeyDown(keycode); }
         });
-
-        Viewport vp = stage.getViewport();
-        lobbyLabel.setFontScale(1.7f);
-        UIService.centerWidget(vp, lobbyLabel, true, true);
-        lobbyPointer.setPosition(vp.getWorldWidth()*0.1f, vp.getWorldHeight()*0.8f);
-        lobbyPointer.setSize(vp.getWorldWidth()*0.15f, vp.getWorldHeight()*0.15f);
-
-        stage.addActor(lobbyLabel);
-        stage.addActor(lobbyPointer);
     }
 
     public void update() {
@@ -94,7 +84,7 @@ public class GameManager implements Disposable, MessageHandler {
         }
         String s = status;
         if (networked() && turnId >= 0) {
-            s += myTurn() ? "  |  YOUR TURN" : "  |  Player " + getPlayerDisplayID(turnId) + "'s turn";
+            s += myTurn() ? "  |  YOUR TURN" : "  |  " + PlayerManager.fetchPlayer(turnId) + "'s turn";
             turnPlayerLabel.setText(s);
         }
         if (!s.equals(shownStatus)) {
@@ -109,80 +99,47 @@ public class GameManager implements Disposable, MessageHandler {
         if (c != null) c.close();
         GameServer s = server;
         if (s != null) s.stop();
-        players = null;
     }
 
-    // Standard TCP LAN Connection
-    public void host() {
-        if (started) return;
-        started = true;
-        try {
-            Vector2 size = board.getGridSize();
-            server = new GameServer(GameServer.DEFAULT_PORT, 4, new BoardMessage(board.getAllPaths()), (int) (size.x * size.y));
-            server.start();
-            hostInfo = " - hosting on " + GameServer.getLanAddresses();
-            System.out.println("Hosting. Others join with one of: " + GameServer.getLanAddresses());
-            connectTo("127.0.0.1"); // Lets the game start hosted "offline" so the game doesn't just freeze
-        } catch (IOException e) {
-            status = "Host failed: " + e.getMessage();
-            server = null;
-            started = false;
+    private TreasureTileInfo[] generateTreasures() {
+        TreasureTileInfo[] results = new TreasureTileInfo[TreasureManager.TREASURE_COUNT];
+        Tile[] tiles = board.randomTilesWithPaths(results.length, true);
+        for (int i = 0; i < results.length; i++) {
+            results[i] = new TreasureTileInfo(i, tiles[i].getID());
         }
+        return results;
     }
 
-
-    public void join(String hostAddress) {
-        if (started) return;
-        started = true;
-        connectTo(hostAddress);
+    private void beginDevMode() {
+        devMode = true;
+        host();
+        status = "Developer Mode";
     }
 
     private void startGame() {
-        stage.clear();
+        StageManager.setStageMode(Mode.GAME);
 
-        float PLAYER_IMAGE_OFFSET = board.getTileSize()/5;
-        Vector2[] basePos = {
-            Vector2.Zero,
-            Vector2.X,
-            Vector2.Y,
-            Vector2.One
-        };
+        BoardUI boardUI = ui.getGameUI().board();
+        boardUI.onTileClicked(this::handleTileClick);
+        boardUI.onarrowClicked(this::handleArrowClick);
 
-        for (int i = 0; i < players.length; i++) {
-            Vector2 boardCornerPos = board.getGridSize()
-                .scl(basePos[i])
-                .sub(basePos[i]);
-
-            Vector2 worldPos = board.toWorldPos(boardCornerPos);
-            float tileSize = board.getTileSize();
-            Player.setPositionOffset(new Vector2(PLAYER_IMAGE_OFFSET, PLAYER_IMAGE_OFFSET));
-            players[i] = new Player(worldPos.x, worldPos.y, tileSize*0.9f, tileSize*0.9f, stage, i);
-            players[i].addListener(this::handlePlayerClick);
-
-            Vector2 winMapping = BASE_MAPPINGS.get(basePos[i]);
-            winningPositions[i] = winMapping.cpy().scl(board.getGridSize()).sub(winMapping);
-            board.initializePlayer(players[i], boardCornerPos);
-        }
-
-        board.forEachTile((pos, tile) -> tile.addListener(this::handleTileClick));
-        board.forEachTile((pos, tile) -> stage.addActor(tile.getActor()));
-        board.forEachArrow(arrow -> arrow.addListener(this::handleArrowClick));
-        board.forEachArrow(arrow -> stage.addActor(arrow.getActor()));
-
-        stage.addActor(turnPlayerLabel);
-        stage.addActor(turnStepLabel);
-
-        Viewport vp = stage.getViewport();
-
-        turnPlayerLabel.setPosition(0.05f*vp.getWorldWidth(), vp.getWorldHeight()*0.95f);
-        turnStepLabel.setY(vp.getWorldHeight()*0.05f);
-        UIService.centerWidget(vp, turnStepLabel, true, false);
+        uiInit();
     }
 
     private void startTyping() {
         typing = true;
         ipBuffer.setLength(0);
         showTyping();
+    }
+
+
+    private void uiInit() {
+        STAGE.addActor(turnPlayerLabel);
+        STAGE.addActor(turnStepLabel);
+
+        turnPlayerLabel.setPosition(0.05f*VIEW.getWorldWidth(), VIEW.getWorldHeight()*0.95f);
+        turnStepLabel.setY(VIEW.getWorldHeight()*0.05f);
+        UIService.centerWidget(turnStepLabel, true, false);
     }
 
     private void showTyping() {
@@ -239,12 +196,41 @@ public class GameManager implements Disposable, MessageHandler {
             try {
                 c.connect(host, GameServer.DEFAULT_PORT);
                 client = c;
+                if (devMode) {
+                    client.send(new StartNotification());
+                }
             } catch (IOException e) {
                 status = "Could not connect: " + e.getMessage();
                 started = false;
             }
         }, "GameClient-connect").start();
     }
+
+    // Standard TCP LAN Connection
+    public void host() {
+        if (started) return;
+        started = true;
+        try {
+            Vector2 size = board.getGridSize();
+            server = new GameServer(GameServer.DEFAULT_PORT, PlayerManager.MAX_PLAYERS, new BoardMessage(board.getAllPaths(), generateTreasures()), (int) (size.x * size.y));
+            server.start();
+            hostInfo = " - hosting on " + GameServer.getLanAddresses();
+            System.out.println("Hosting. Others join with one of: " + GameServer.getLanAddresses());
+            connectTo("127.0.0.1"); // Lets the game start hosted "offline" so the game doesn't just freeze
+        } catch (IOException e) {
+            status = "Host failed: " + e.getMessage();
+            server = null;
+            started = false;
+        }
+    }
+
+
+    public void join(String hostAddress) {
+        if (started) return;
+        started = true;
+        connectTo(hostAddress);
+    }
+
 
     private void onDisconnected() {
         client = null;
@@ -268,21 +254,28 @@ public class GameManager implements Disposable, MessageHandler {
     public void onWelcome(int from, WelcomeMessage m) {
         myId = m.getNewID();
         status = "You are player " + getPlayerDisplayID(myId) + hostInfo;
+        if (server != null) {
+            LobbyUI lobby = ui.getLobbyUI();
+            lobby.waitingMode();
+        }
     }
 
     @Override 
     public void onBoard(int from, BoardMessage m) {
         int[] paths = m.getPaths();
+        TreasureTileInfo[] treasures = m.getTreasureInfo();
         board.applyAllPaths(paths);
+        board.placeTreasures(treasures);
     }
 
     @Override 
     public void onPlayerMoved(int from, PlayerMovedMessage m) {
-        Player player = findPlayerByID(m.getPlayerID());
+        Player player = PlayerManager.fetchPlayer(m.getPlayerID());
         TileInfo target = board.fetchTile(m.getTileID());
         applyMove(player, target.pos());
+        clearHighlights();
         generateRandomMovement();
-        if (playerWon(player) && myId == player.getID().intValue()) {
+        if (playerWon(player) && myId == player.getID()) {
             client.send(new WinMessage(player.getID()));
         }
     }
@@ -290,7 +283,7 @@ public class GameManager implements Disposable, MessageHandler {
     @Override 
     public void onTurn(int from, TurnMessage m) {
         turnId = m.getTurnPlayerID();
-        board.forEachTile((pos, tile) -> tile.setHighlighted(false));
+        clearHighlights();
     }
 
     @Override 
@@ -302,7 +295,7 @@ public class GameManager implements Disposable, MessageHandler {
 
     @Override  
     public void onWin(int from, WinMessage m) {
-        Player player = findPlayerByID(m.getWinnerID());
+        Player player = PlayerManager.fetchPlayer(m.getWinnerID());
         endGame(player + " has won!");
     }
 
@@ -325,10 +318,36 @@ public class GameManager implements Disposable, MessageHandler {
         startGame();
     }
 
+    @Override 
+    public void onNewPlayer(int from, NewPlayerMessage m) {
+        int newPlayerID = m.getNewPlayerID();
+        Player newPlayer = PlayerManager.create(newPlayerID == 0, newPlayerID == myId, newPlayerID);
+        board.initializePlayer(newPlayer);
+    }
+
+    @Override 
+    public void onTreasure(int from, TreasureMessage m) {
+        int collectorId = m.getCollectorID();
+        Player targetPlayer = PlayerManager.fetchPlayer(collectorId);
+        switch (m.getTreasureCountDelta()) {
+            case LOSE -> targetPlayer.loseTreasure(); // Supports enemies
+            case COLLECT -> targetPlayer.collectTreasure();
+        }
+    }
+
+    @Override 
+    public void onTreasureInit(int from, TreasureInitMessage m) {
+        int targetPlayer = m.getPlayerID();
+        int[] treasures = m.getTreasures();
+        PlayerManager.fetchPlayer(targetPlayer).assignTreasures(treasures);
+    }
+
     // Simple communication dictionary for communicating between server and clients
+    // Client receiver
     private void handleMessage(String line) {
         try {
             Message msg = Message.deserialize(line);
+            System.out.println("Message received of type " + msg.getCategory());
             dispatcher.accept(msg);
         }
         catch (MessageDeserializationException e) {
@@ -343,12 +362,14 @@ public class GameManager implements Disposable, MessageHandler {
     private void generateRandomMovement() {
         int currentMovement = ThreadLocalRandom.current().nextInt(1, 7);
 
-        Set<Vector2> visited = board.pathFind(board.getPlayerPosition(getTurnPlayer()), currentMovement);
-        System.out.println("Targets:");
+        Set<Vector2> visited = board.pathFind(board.getPlayerPosition(PlayerManager.getYourself()), currentMovement);
         for (Vector2 moveEligible: visited) {
-            System.out.println(moveEligible);
             board.fetchTile(moveEligible).setHighlighted(true);
         }
+    }
+
+    private void clearHighlights() {
+        board.forEachTile((pos, tile) -> tile.setHighlighted(false));
     }
 
     private void updateStep(TurnStep newStep) {
@@ -357,43 +378,32 @@ public class GameManager implements Disposable, MessageHandler {
     }
 
     private void handleTurnStep(TurnStep newStep) {
-        System.out.println("STEP: " + newStep.name());
         switch(newStep) {
-            case SHIFTING: {
+            case SHIFTING -> {
                 // In the future, you could put an animation for the arrows here
                 // to indicate that they can be clicked
-                break;
             }
-            case MOVING: {
-                board.forEachArrow(arrow -> arrow.getActor().clearActions());
+            case MOVING -> {
                 generateRandomMovement();
-                break;
             }
         }
-    }
-
-    private Player findPlayerByID(int id) {
-        for (Player p: players) {
-            if (p != null && p.getID().equals(id)) {
-                return p;
-            }
-        }
-        throw new IllegalArgumentException("Failed to find player with id " + id);
-    }
-
-    private void handlePlayerClick(int targetPlayerID) {
-        // Possibly change this to a tooltip in the future showing the player id and their
-        // existing powerups
-        System.out.println("Player clicked " + targetPlayerID);
     }
 
     private void handleTileClick(int tileID) {
-        if (!myTurn() || step != TurnStep.MOVING) { return; }
+        if ((!myTurn() || step != TurnStep.MOVING) && !devMode) { return; }
 
         TileInfo target = board.fetchTile(tileID);
         if (!target.tile().isHighlighted()) { return; }
 
         client.send(new PlayerMovedMessage(tileID));
+        
+        Player player = PlayerManager.getYourself();
+        target.tile().getTreasure().ifPresent(value -> {
+            System.out.println("Landed on treasure " + (value + 1));
+            if (player.canCollectTreasure(value)) {
+                client.send(new TreasureMessage(myId, Delta.COLLECT));
+            }
+        });
     }
 
     private void handleArrowClick(ShiftID sid) {
@@ -404,39 +414,21 @@ public class GameManager implements Disposable, MessageHandler {
 
     private void endGame(String withMessage) {
         status = "Game has ended";
-        Texture background = new Texture("EmptyTile.png");
-        Label message = UIService.createLabel(withMessage);
-        TextButton baseButton = UIService.createTextButton("Exit", background, null, null);
-        Viewport view = stage.getViewport();
-        Vector2 topRight = new Vector2(view.getWorldWidth(), view.getWorldHeight());
-        new TrivialEntity<>(baseButton, Gdx.app::exit);
-
-        message.setFontScale(1.7f);
-        UIService.centerWidget(view, message, true, false);
-        message.setY(topRight.y/1.7f);
-
-        baseButton.setTransform(true);
-        baseButton.setScale(3);
-        baseButton.setPosition(topRight.x/2 - baseButton.getWidth()*1.5f, topRight.y/2.5f - baseButton.getHeight());
-        UIService.modifyTextButtonStyle(baseButton, style -> style.fontColor = Color.BLACK);
-
-        stage.clear();
-        stage.addActor(message);
-        stage.addActor(baseButton);
+        STAGE.clear();
+        var exitScreen = new FullScreenPopUpUI(withMessage, "Exit", Gdx.app::exit);
+        exitScreen.show();
     }
 
     private void applyMove(Player p, Vector2 newPos) {
         board.movePlayer(p, newPos);
-        System.out.println("MOVED " + p + " to " + newPos);
     }
-
 
     private boolean playerWon(Player p) {
-        return board.getPlayerPosition(p).epsilonEquals(winningPositions[p.getID()]);
+        return p.getTreasureCount() == 0 && board.playerOnPosition(p, getPlayerStartPos(p));
     }
 
-    private Player getTurnPlayer() {
-        return findPlayerByID(turnId);
+    private Vector2 getPlayerStartPos(Player player) {
+        return board.cornerToGrid(player.getStartingCorner());
     }
 
     private int getPlayerDisplayID(int fromId) {

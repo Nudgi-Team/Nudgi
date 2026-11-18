@@ -1,6 +1,7 @@
 package io.github.Nudgi;
 
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -11,19 +12,20 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import io.github.Nudgi.entities.Player;
 import io.github.Nudgi.entities.ShiftArrow;
 import io.github.Nudgi.entities.Tile;
-import io.github.Nudgi.entities.ShiftArrow.ShiftID;
+import io.github.Nudgi.entities.ShiftID;
 
 public class Board {
-    private Tile[][] tiles;
-    private Vector2 position;
-    private Vector2 gridSize;
-    private float tileSize;
-    private Map<Direction, ShiftArrow[]> arrows = new EnumMap<>(Direction.class);
+    private final Tile[][] tiles;
+    private final Vector2 position;
+    private final Vector2 gridSize;
+    private final float tileSize;
+    private final Map<Direction, ShiftArrow[]> arrows = new EnumMap<>(Direction.class);
 
     public Board(Vector2 _position, float _size, Vector2 _gridSize){
         gridSize = _gridSize;
         // Keep all tiles square while still fitting on the screen
         tileSize = _size / Math.max(gridSize.x, gridSize.y);
+        tiles = new Tile[(int) gridSize.x][(int) gridSize.y];
 
         // Keep board in the center of the screen
         float boardWidth  = tileSize * gridSize.x;
@@ -32,7 +34,7 @@ public class Board {
             _position.x + (_size - boardWidth)  / 2f,
             _position.y + (_size - boardHeight) / 2f
         );
-        generateBoard(gridSize);
+        generateBoard();
         generateArrows();
         forEachTile((pos, target) -> {
             Vector2 worldPos = toWorldPos(pos);
@@ -40,8 +42,7 @@ public class Board {
         });
     }
 
-    private void generateBoard(Vector2 gridSize){
-        tiles = new Tile[(int) gridSize.x][(int) gridSize.y];
+    private void generateBoard(){
         int id = 0;
         for(int x = 0; x < gridSize.x; x++){
             for(int y = 0; y < gridSize.y; y++){
@@ -86,12 +87,12 @@ public class Board {
             ShiftArrow[] arr = new ShiftArrow[bounds];
 
             for (int i = 0; i < bounds; i++) {
-                arr[i] = new ShiftArrow(i+1, dir);
+                arr[i] = new ShiftArrow(new ShiftID(i+1, dir));
                 
                 Vector2 worldPos = toWorldPos(getArrowGridPos(arr[i]));
                 Image arrowImage = arr[i].getActor();
-                arrowImage.setPosition(worldPos.x, worldPos.y);
-                arrowImage.setSize(tileSize, tileSize);
+                arr[i].setPosition(worldPos);
+                arr[i].setSizeSquare(tileSize);
                 arrowImage.setOrigin(tileSize/2, tileSize/2);
                 arrowImage.setRotation(dir.degrees());
             }
@@ -115,7 +116,6 @@ public class Board {
     }
 
     public void shift(int index, Direction direction) {
-        System.out.println("Shifted on index " + index + " " + direction);
         Tile wrap;
 
         switch (direction) {
@@ -162,7 +162,7 @@ public class Board {
     }
 
     /**
-     *
+     * Returns all positions on the board adjacent to the selected position.
      * @param fromPosition the starting position.
      * @param onlyNonBlocked if true, only returns positions not blocked by a wall.
      * @return the array of adjacent tiles.
@@ -203,7 +203,7 @@ public class Board {
 
     public Vector2 getPlayerPosition(Player p) {
         return search(info -> info.tile().containsPlayer(p))
-            .orElseThrow(IllegalArgumentException::new).pos();
+            .orElseThrow(() -> new IllegalArgumentException("For input player " + p.getID())).pos();
     }
 
     /**
@@ -226,12 +226,18 @@ public class Board {
 
     /**
      * Must be called exactly once for each player upon starting the game.
-     * @param p the player to place onto the board.
-     * @param startingLocation where the player will start.
+     * This places the Player on a location dependent on their starting Corner.
+     * @param p the player to place onto the board, onto their starting Corner..
      */
-    public void initializePlayer(Player p, Vector2 startingLocation) {
+    public void initializePlayer(Player p) {
+        Vector2 startingLocation = cornerToGrid(p.getStartingCorner());
         Tile start = fetchTile(startingLocation);
+        p.setPosition(toWorldPos(startingLocation));
         start.addPlayer(p);
+    }
+
+    public boolean playerOnPosition(Player player, Vector2 pos) {
+        return getPlayerPosition(player).epsilonEquals(pos);
     }
 
     public int[] getAllPaths() {
@@ -257,6 +263,14 @@ public class Board {
         }
     }
 
+    public void placeTreasures(TreasureTileInfo[] treasures) {
+        for (TreasureTileInfo info: treasures) {
+            TileInfo target = fetchTile(info.targetTileID());
+            int treasure = info.treasureKind();
+            target.tile().addTreasure(treasure);
+        }
+    }
+
     public Vector2 getPosition() {
         return new Vector2(position);
     }
@@ -275,8 +289,54 @@ public class Board {
     }
 
 
+    public Vector2 cornerToGrid(Corner corner) {
+        return corner.vector()
+            .scl(gridSize)
+            .sub(corner.vector());
+    }
+
+    public Tile[] getCorners() {
+        return Arrays.stream(Corner.values())
+            .map(this::cornerToGrid)
+            .map(this::fetchTile)
+            .toArray(Tile[]::new);
+    }
+
+    private List<Tile> flattened() {
+        List<Tile> tiles = new ArrayList<>();
+        forEachTile((_, tile) -> tiles.add(tile));
+        return tiles;
+    }
+
+    public Tile[] randomTilesWithPaths(int amount, boolean excludeStartingTiles) {
+        List<Tile> available = flattened();
+        Set<Tile> forbiddenTiles = (excludeStartingTiles) ? new HashSet<>(Arrays.asList(getCorners())) : new HashSet<>();
+
+        List<TileInfo> zeroInfos = searchAll(info -> info.tile().getPathCount() == 0);
+        final List<Tile> zeroPaths = zeroInfos.stream().map(TileInfo::tile).toList();
+
+        forbiddenTiles.addAll(zeroPaths);
+        available.removeAll(forbiddenTiles);
+        if (amount > available.size()) { throw new IllegalArgumentException("Request too large: " + amount); }
+
+        int generated = 0;
+        Tile[] results = new Tile[amount];
+        while (generated < amount) {
+            int index = ThreadLocalRandom.current().nextInt(0, available.size());
+            Tile target = available.get(index);
+            
+            if (!forbiddenTiles.contains(target)) { 
+                results[generated++] = target;
+                available.remove(target);
+            }
+        }
+
+        return results;
+    }
+
+
     public TileInfo fetchTile(int id) {
-        Optional<TileInfo> container = search((info) -> info.tile().tileID == id);
+        Optional<TileInfo> container = search((info) -> info.tile().getID() == id);
         return container.orElseThrow(IllegalArgumentException::new);
     }
 
@@ -298,6 +358,17 @@ public class Board {
                 func.accept(new Vector2(x, y), tiles[x][y]);
             }
         }
+    }
+
+    public List<TileInfo> searchAll(Predicate<TileInfo> predicate) {
+        List<TileInfo> results = new ArrayList<>();
+        forEachTile((pos, tile) -> {
+            TileInfo info = new TileInfo(pos, tile);
+            if (predicate.test(info)) {
+                results.add(info);
+            }
+        });
+        return results;
     }
 
     public void forEachArrow(Consumer<ShiftArrow> func) {

@@ -102,13 +102,13 @@ import io.github.Nudgi.network.protocol.config.SourceContext;
  * - The elements of {@code args} only include the string representations of each
  * data field specified in the corresponding subclass's serialized representation.
  * Furthermore, the {@code SourceContext} passed in can only correspond to 
- * any possible argument in super() calls within the subclass.
+ * any possible argument in {@code super(SourceContext)} calls within the subclass.
  *
  * - - In other words, {@code args} will always represent a plausible output
  * from a call to that Message's {@link Message#serialized() serialized()} method.
  *
  * - The constructor must pass a SourceContext value equal to the SourceContext received
- * in the first parameter, in its call to {@code super()}. For messages with
+ * in the first parameter, in its call to {@code super(SourceContext)}. For messages with
  * only one possible context, that context may be passed directly instead.
  * 
  * - It must reconstruct the subclass in a manner such that it conforms
@@ -123,15 +123,16 @@ import io.github.Nudgi.network.protocol.config.SourceContext;
  * <p>
  * By definition, only subclasses taking Option 2 above may have contextual values.
  * 
- * @see Message#Message(SourceContext)
  * @see Notification
- * @see Message#serialized()
+ * @see Message#toString()
+ * @see Message#deserialize(String)
  * @java 17
  */
 public abstract sealed class Message
 permits BoardMessage, PlayerMovedMessage, ShiftMessage,
         StepMessage, Notification, NewPlayerMessage,
-        TurnMessage, WelcomeMessage, WinMessage {
+        TurnMessage, WelcomeMessage, WinMessage,
+        TreasureMessage, TreasureInitMessage {
     /**
      * If this character is present within the array result of {@link #serialized()},
      * a {@link BadMessageException} is thrown when {@link #toString()} is called.
@@ -277,7 +278,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
         catch(InvocationTargetException e) {
             throw new ExceptionInDeserializerException(
                 "Error during deserialization: " + e.getCause() + '\n'
-                + "With arguments: " + formatArgumentErrorDump(args), e);
+                + "With arguments: " + formatArgumentErrorDump(args), e.getCause());
         }
         catch(NoSuchMethodException | IllegalAccessException | InstantiationException impossible) {
             throw new IllegalStateException(impossible);
@@ -307,6 +308,8 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
      * @throws ExceptionInDeserializerException if an exception is thrown in the Message's
      * deserialization constructor.
      * @throws IllegalStateException if an unexpected internal error occurs.
+     * @throws NullPointerException if {@code input == null}
+     * @see MessageDeserializationException
      */
     public static Message deserialize(String input) throws NotAMessageException, ExceptionInDeserializerException {
         String[] fullArgs = input.split(DELIMITER_STR, -1);
@@ -342,7 +345,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
      * <p>
      * It is an error for any element of the returned array to contain the {@link Message#DELIMITER}
      * character, or for any element of the returned array to be {@code null}, or for the 
-     * array to be {@code null}.
+     * array itself to be {@code null}.
      * <p>
      * Empty strings will be preserved.
      *
@@ -350,9 +353,75 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
      */
     protected abstract String[] serialized();
 
+    /**
+     * Convenience method for use during serialization to combine
+     * intermediate serialized results.
+     * @param prependLengths if true, the length of each array in {@code arrays} is
+     * prepended to the resulting array, in the provided order.
+     * @param arrays the intermediate results to combine.
+     * @return a new array containing the lengths of
+     * all provided arrays if {@code prependLengths} is {@code true}, followed by
+     * each String value within each element of {@code arrays}, in the order provided.
+     * @apiNote The prependLengths argument is designed for use with {@link #slice(String[], int)},
+     * the inverse of this method. When using this parameter alongside {@code slice},
+     * the {@code numSlices} parameter in that method should always be the number 
+     * of arguments passed into {@code arrays} here ({@code arrays.length}).
+     */
+    protected static String[] concat(boolean prependLengths, String[]... arrays) {
+        String[] values = Arrays.stream(arrays)
+            .flatMap(Arrays::stream)
+            .toArray(String[]::new);
+
+        if (prependLengths) {
+            String[] lengths = Arrays.stream(arrays)
+                .map(a -> String.valueOf(a.length))
+                .toArray(String[]::new);
+            return concat(false, lengths, values);
+        }
+        return values;
+    }
+
+    /**
+     * Automatically separates serialized input into individual
+     * slices for more granular processing, particularly when
+     * the serialized results contain multiple arrays.
+     * <p>
+     * This method requires a number of length prefixes equal to the {@code numSlices}
+     * parameter to be present at the beginning of {@code args}, each representing
+     * the length of that particular slice.
+     * <p>
+     * @param args the raw serialized input, containing the length prefixes for each array
+     * followed by the payload.
+     * @param numSlices the amount of times to slice.
+     * @return a sliced version of the serialized input. An additional array is returned
+     * as the last element containing any remaining values in {@code args} after slicing,
+     * which may be empty. Each of these arrays is always a copy of a subset of args.
+     * @apiNote This is the inverse of {@link #concat(boolean, String[][])}, which
+     * is capable of providing the required length prefixes automatically. When
+     * using this method where all of the following hold:
+     * <p>
+     * - {@code args} is the result of a call to {@code concat}
+     * where {@code prependLengths} was true
+     * - {@code numSlices} is equal to {@code arrays.length} of the {@code concat} call
+     * <p>
+     * the last element of this method's return value will always be an empty array.
+     */
+    protected static String[][] slice(String[] args, int numSlices) {
+        String[][] output = new String[numSlices+1][];
+        int generated = numSlices;
+        for (int i = 0; i < numSlices; i++) {
+            int elementCount = Integer.parseInt(args[i]);
+            output[i] = Arrays.copyOfRange(args, generated, generated + elementCount);
+            generated += elementCount;
+        }        
+        output[numSlices] = Arrays.copyOfRange(args, generated, args.length);
+        return output;
+    }
+
 
     private String buildPayload() {
         String[] args = serialized();
+        if (args == null) { throw new BadMessageException("payload may not be null"); }
         for (int i = 0; i < args.length; i++) {
             if (args[i] == null || args[i].contains(DELIMITER_STR)) {
                 throw new BadMessageException(i, args[i] == null);
@@ -415,6 +484,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
         /**
          * Unconditionally sets the value within this Contextual.
          * @param value the new value.
+         * @see #contextualSet(Supplier)
          */
         public void set(T value) {
             this.value = value;
@@ -428,7 +498,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
          */
         public T get() {
             if (!contextMatches()) {
-                throw new ContextMismatchException();
+                throw new ContextMismatchException(context, Message.this.getSource());
             }
             return value;
         }
@@ -468,10 +538,14 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
      * Thrown when serialized forms of subclasses are erroneous.
      */
     public static class BadMessageException extends RuntimeException {
-        public BadMessageException(int offendingIndex, boolean nullMode) {
-            super((nullMode) 
+        private BadMessageException(int offendingIndex, boolean nullMode) {
+            this((nullMode) 
                 ? "error: Element at index " + offendingIndex + " is null"
                 : "error: Element at index " + offendingIndex + " contains the prohibited delimiter character");
+        }
+        
+        public BadMessageException(String message) {
+            super(message);
         }
     }
 
@@ -481,8 +555,12 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
      * being accessed in a Message with a context of {@link SourceContext#SERVER}).
      */
     public static class ContextMismatchException extends RuntimeException {
-        public ContextMismatchException() {
-            super(CONTEXT_MISMATCH);
+        private ContextMismatchException(SourceContext expected, SourceContext actual) {
+            this(CONTEXT_MISMATCH + "(expected " + expected + " got " + actual + ")");
+        }
+
+        public ContextMismatchException(String message) {
+            super(message);
         }
     }
     
@@ -520,9 +598,8 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
     /**
      * Thrown when an attempt is made to deserialize a string that cannot
      * be recognized as a Message.
-     * @see MessageDeserializationException
      */
-    public static final class NotAMessageException extends MessageDeserializationException {
+    public static non-sealed class NotAMessageException extends MessageDeserializationException {
         public NotAMessageException(String message) {
             super(message);
         }
@@ -534,9 +611,8 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
 
     /**
      * Thrown when an exception occurs in a Deserialization Constructor.
-     * @see MessageDeserializationException
      */
-    public static final class ExceptionInDeserializerException extends MessageDeserializationException {
+    public static non-sealed class ExceptionInDeserializerException extends MessageDeserializationException {
         public ExceptionInDeserializerException(String message) {
             super(message);
         }

@@ -1,8 +1,5 @@
 package io.github.Nudgi.control.network.protocol;
 
-import io.github.Nudgi.control.network.protocol.config.Category;
-import io.github.Nudgi.control.network.protocol.config.SourceContext;
-
 /**
  * A Notification is a subtype of Message used when the message
  * does not contain a payload, thus being "notification-only."
@@ -11,9 +8,6 @@ import io.github.Nudgi.control.network.protocol.config.SourceContext;
  * constructed with a SourceContext of {@link SourceContext#ANY}.
  * <p>
  * For more complex messages, extend {@link Message} instead.
- * <p>
- * Remember that your concrete {@code Class} token must still be registered
- * within {@link Category}.
  * @apiNote This class allows you to have an empty body in the subclass, e.g.:
  * <pre>
  * {@code public final class MyNotification extends Notification {}}

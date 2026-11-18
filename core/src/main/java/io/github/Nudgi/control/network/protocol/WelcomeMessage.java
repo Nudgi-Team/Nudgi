@@ -1,7 +1,5 @@
 package io.github.Nudgi.control.network.protocol;
 
-import io.github.Nudgi.control.network.protocol.config.SourceContext;
-
 public final class WelcomeMessage extends Message {
     private final int id;
 

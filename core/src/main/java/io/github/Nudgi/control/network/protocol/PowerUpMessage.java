@@ -1,6 +1,5 @@
 package io.github.Nudgi.control.network.protocol;
 
-import io.github.Nudgi.control.network.protocol.config.SourceContext;
 import io.github.Nudgi.entities.PowerUp;
 
 public final class PowerUpMessage extends Message {

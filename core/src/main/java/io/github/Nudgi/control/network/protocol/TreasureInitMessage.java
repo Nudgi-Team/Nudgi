@@ -2,8 +2,6 @@ package io.github.Nudgi.control.network.protocol;
 
 import java.util.Arrays;
 
-import io.github.Nudgi.control.network.protocol.config.SourceContext;
-
 public final class TreasureInitMessage extends Message {
     private final int[] treasures;
     private final int playerID;

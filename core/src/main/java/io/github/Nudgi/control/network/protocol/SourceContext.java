@@ -1,4 +1,4 @@
-package io.github.Nudgi.control.network.protocol.config;
+package io.github.Nudgi.control.network.protocol;
 
  /**
  * Represents the source context of a message, or where this message came from.

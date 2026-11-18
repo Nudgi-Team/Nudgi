@@ -3,15 +3,14 @@ package io.github.Nudgi.control.network.protocol;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-
+import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
-import io.github.Nudgi.control.network.protocol.config.Category;
-import io.github.Nudgi.control.network.protocol.config.SourceContext;
-
 
 
 /**
@@ -20,7 +19,7 @@ import io.github.Nudgi.control.network.protocol.config.SourceContext;
  * # Overview
  * <p>
  * A Message consists of a header and a payload, where:
- * - The header consists of the {@link Category Message category} (determined
+ * - The header consists of the Message category (determined
  * by the concrete class type) and its {@link SourceContext}.
  * - The payload consists of the data (fields) being sent as part of the Message.
  * <p>
@@ -33,9 +32,7 @@ import io.github.Nudgi.control.network.protocol.config.SourceContext;
  * <p>
  * Some payloads may also be dependent on {@link SourceContext}, changing shape based on
  * who sent the message. This avoids asymmetric, bidirectional messages from having to
- * declare two separate classes with very similar categories, which would otherwise
- * overload the Category enum name's identifier. One Category thus always represents
- * one particular kind of event, regardless of who sent it.
+ * declare two separate classes for the same kind of event.
  * <p>
  * # Subclassing Requirements
  * <p>
@@ -60,17 +57,6 @@ import io.github.Nudgi.control.network.protocol.config.SourceContext;
  * {@code abstract} but not {@code sealed}, or concrete but not {@code final}.</i>
  * <p>
  * ## Concrete Implementations
- * <p>
- * ### Category Registration
- * <p>
- * All concrete subclasses must define their {@link Category}, by
- * registering their {@code Class} token within the enum for exactly one enum value.
- * Abstract subclasses may not register a Category.
- * <p>
- * <i>It is an error if any of the following occurs:</i>
- * - A concrete subclass does not map to any Category.
- * - A concrete subclass maps to multiple categories.
- * - An abstract subclass token appears in a Category definition.
  * <p>
  * ### Constructor Requirements
  * All concrete subclasses are required to implement a
@@ -115,6 +101,7 @@ import io.github.Nudgi.control.network.protocol.config.SourceContext;
  * <p>
  * By definition, only subclasses taking Option 2 above may have contextual values.
  * 
+ * @version 1.1
  * @see Notification
  * @see Message#toString()
  * @see Message#deserialize(String)
@@ -137,6 +124,26 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
 
     private static final String CONTEXT_MISMATCH = "Attempted to access a field that is not available in this context";
     private static final String DELIMITER_STR = String.valueOf(DELIMITER);
+    private static final Map<Class<? extends Message>, String> CLASS_TO_STR = new HashMap<>();
+    private static final Map<String, Class<? extends Message>> STR_TO_CLASS = new HashMap<>();
+
+    static {
+        @SuppressWarnings("unchecked")
+        var initialSubclasses = List.of((Class<? extends Message>[])Message.class.getPermittedSubclasses());
+     
+        var processing = new ArrayDeque<>(initialSubclasses);
+        while (!processing.isEmpty()) {
+            var element = processing.pop();
+            if (element.isSealed()) {
+                @SuppressWarnings("unchecked")
+                var additional = List.of((Class<? extends Message>[])element.getPermittedSubclasses());
+                processing.addAll(additional);
+                continue;
+            }
+            CLASS_TO_STR.put(element, element.getSimpleName());
+            STR_TO_CLASS.put(element.getSimpleName(), element);
+        }
+    }
 
     private final Header header;
 
@@ -150,7 +157,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
      * @throws NullPointerException if source is {@code null}
      */
     protected Message(SourceContext source) {
-        header = new Header(Category.find(getClass()), source);
+        header = new Header(CLASS_TO_STR.get(getClass()), source);
     }
 
     private static Constructor<? extends Message> findConstructor(Class<? extends Message> clazz)
@@ -175,7 +182,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
     private static Message asDeserialized(Header header, String[] args)
     throws ExceptionInDeserializerException {
         try {
-            Constructor<? extends Message> constructor = findConstructor(header.category().getAssociatedType());
+            Constructor<? extends Message> constructor = findConstructor(header.categoryAsClass());
             constructor.setAccessible(true);
 
             return (constructor.getParameterCount() == 2)
@@ -199,7 +206,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
             throw new IllegalArgumentException(input + " does not correspond to a valid Message");
         }
         return new Header(
-            Category.valueOf(fullArgs[0]),
+            fullArgs[0],
             SourceContext.valueOf(fullArgs[1])
         );
     }
@@ -235,7 +242,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
     }
 
 
-    public final Category getCategory() {
+    public final String getCategory() {
         return header.category();
     }
 
@@ -470,23 +477,6 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
             super(message);
         }
     }
-    
-
-
-    /**
-     * Thrown when the configuration of a subclass is invalid.
-     */
-    public static class IllegalMessageException extends RuntimeException {
-        public IllegalMessageException(String message) {
-            super(message);
-        }
-
-
-        public IllegalMessageException(String message, Throwable cause) {
-            super(message, cause);
-        }
-    }
-
 
     /**
      * Catch all for general exceptions during deserialization.
@@ -529,12 +519,20 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
         }
     }
 
-    private record Header(Category category, SourceContext source) {
-        Header { Objects.requireNonNull(source); }
+    private record Header(String category, SourceContext source) {
+        Header { 
+            Objects.requireNonNull(category);
+            Objects.requireNonNull(source);
+            if (STR_TO_CLASS.get(category) == null) { throw new IllegalArgumentException("Invalid category " + category); }
+        }
+
+        private Class<? extends Message> categoryAsClass() {
+            return STR_TO_CLASS.get(category);
+        }
 
         @Override
         public String toString() {
-            return category.name() + DELIMITER + source.name() + DELIMITER;  
+            return category + DELIMITER + source.name() + DELIMITER;  
         }
     }
 }

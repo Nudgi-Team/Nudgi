@@ -1,7 +1,5 @@
 package io.github.Nudgi.control.network.protocol;
 
-import io.github.Nudgi.control.network.protocol.config.SourceContext;
-
 public final class TreasureMessage extends Message {
     private final int collectingID;
     private final Delta delta;

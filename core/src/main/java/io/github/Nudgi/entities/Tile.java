@@ -2,6 +2,7 @@ package io.github.Nudgi.entities;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Scaling;
@@ -26,6 +27,7 @@ public class Tile extends Entity<Stack> {
     private final Stack tileGraphics;
     private ArrayList<Player> players = new ArrayList<>();
     private Integer treasure = null;
+    private PowerUp powerUp = null;
 
     public Tile(boolean north, boolean south, boolean east, boolean west, int tileID){
         super(new Stack());
@@ -188,11 +190,22 @@ public class Tile extends Entity<Stack> {
         tileGraphics.addActor(TreasureManager.TREASURES[treasure]);
     }
 
+    public void addPowerup(PowerUp powerUp) {
+        this.powerUp = powerUp;
+        Label label = powerUp.spawnLabel();
+        label.setVisible(true);
+        tileGraphics.addActor(label);
+    }
+
     /**
      * Retrieves the treasure ID on this space, if one is present.
      * @return an Optional containing the treasure id on this tile, if any; otherwise an empty Optional.
      */
     public Optional<Integer> getTreasure() {
         return Optional.ofNullable(treasure);
+    }
+
+    public Optional<PowerUp> getPowerup() {
+        return Optional.ofNullable(powerUp);
     }
 }

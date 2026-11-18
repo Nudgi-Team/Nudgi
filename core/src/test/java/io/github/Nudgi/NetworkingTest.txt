@@ -1,0 +1,48 @@
+Test 1 - Hosting a Game Session:
+    Action: Press 'H' on the main screen menu
+    Expected:
+        GameServer starts successfully on the default port
+        Local client connects automatically (127.0.0.1)
+        Status title updates to show assigned player ID (Player 0) and hosting details
+
+Test 2 - Joining a Game Session:
+    Action: Press 'J', type a valid host IP address or leave blank for localhost, and press Enter
+    Expected:
+        GameClient establishes connection to the target server
+        Server assigns and sends a `WELCOME` message with a unique player ID
+        Server transmits the initial board layout via `BOARD` message, synchronizing the board state
+
+Test 3 - Room Full Rejection:
+    Action: Attempt to connect more players than the `maxPlayers` limit allows
+    Expected:
+        Server detects capacity reached and sends `FULL` message
+        Client receives `FULL`, sets `rejected` and `started` flags to false
+        Status updates to "Game room is full" and connection terminates gracefully
+
+Test 4 - Action Relaying (Movement):
+    Action: A connected player selects their piece and clicks a valid highlighted tile
+    Expected:
+        Client sends `MOVED` message containing the target tile ID to the server
+        Server receives, validates, and broadcasts `MOVED` with player ID and tile ID to all clients
+        All connected player instances update the player's position synchronously on screen
+
+Test 5 - Board Shifting Relay:
+    Action: A connected player clicks any board shift arrow
+    Expected:
+        Client sends `SHIFT` message with direction and index coordinates
+        Server broadcasts the shift command to all connected peers
+        The board layout shifts identically across all connected client instances
+
+Test 6 - Networked Win State:
+    Action: A player moves onto their designated winning target square
+    Expected:
+        Client sends `WIN` message with the winning player's ID to the server
+        Server broadcasts the win event to all connected clients
+        All clients render the win screen displaying the correct winner's identifier
+
+Test 7 - Disconnection Handling:
+    Action: The server shuts down or a client loses network connection mid-game
+    Expected:
+        Disconnected client triggers `onDisconnect` callback
+        Status updates to indicate disconnection from the host
+        Game invokes `endGame(...)` to present the disconnect message to the user

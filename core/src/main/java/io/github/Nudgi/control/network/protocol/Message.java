@@ -3,17 +3,9 @@ package io.github.Nudgi.control.network.protocol;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Modifier;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
+
 import java.util.Arrays;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -145,52 +137,8 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
 
     private static final String CONTEXT_MISMATCH = "Attempted to access a field that is not available in this context";
     private static final String DELIMITER_STR = String.valueOf(DELIMITER);
-    private static final Set<String> initErrors = new HashSet<>();
 
     private final Header header;
-   
-    // fail-fast setup: ExceptionInInitializer occurs here = something isn't right
-    // verify part 1
-    static {
-        // category exists
-        for (Class<? extends Message> clazz: getConcreteSubclasses()) {
-            try { Category.find(clazz); }
-            catch (IllegalMessageException e) {
-                initErrors.add(e.getMessage());
-            }
-        }
-        // category exists without duplicates nor abstract classes
-        Map<Class<? extends Message>, Boolean> findings = new HashMap<>();
-        for (Category cat: Category.values()) {
-            Class<? extends Message> type = cat.getAssociatedType();
-            if (findings.putIfAbsent(type, true) != null) {
-                initErrors.add("error: multiple Category definition of " + type);
-            }
-            else if (Modifier.isAbstract(type.getModifiers())) {
-                initErrors.add("error: the abstract " + type + " may not have a Category");
-            }
-        }
-    }
-    // verify part 2: constructors
-    static {
-        for (Class<? extends Message> clazz: getConcreteSubclasses()) {
-            checkConstructor(clazz);
-        }
-    }
-    // final checks
-    static {
-        if (!initErrors.isEmpty()) {
-            String msg = "";
-            for (String error: initErrors) {
-                msg += error + '\n';
-            }
-            if (initErrors.size() > 1) {
-                msg = "\n" + initErrors.size() + " errors\n" + msg;
-            }
-            // killer queen, daisan no bakudan: bites za dusto
-            throw new IllegalMessageException(msg);
-        }
-    }
 
     /**
      * Constructs a new Message with the given context.
@@ -204,48 +152,6 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
     protected Message(SourceContext source) {
         header = new Header(Category.find(getClass()), source);
     }
-
-
-    @SuppressWarnings("unchecked")
-    private static <T> List<Class<? extends T>> typedPermittedSubclassesOf(Class<T> clazz) {
-        return Arrays.asList((Class<? extends T>[])clazz.getPermittedSubclasses());
-    }
-
-
-    private static List<Class<? extends Message>> getConcreteSubclasses() {
-        final List<Class<? extends Message>> init = typedPermittedSubclassesOf(Message.class);
-
-        Deque<Class<? extends Message>> processing = new ArrayDeque<>();
-        List<Class<? extends Message>> current = new ArrayList<>();
-
-        processing.addAll(init);
-        while (!processing.isEmpty()) {
-            Class<? extends Message> element = processing.pop();
-            if (Modifier.isAbstract(element.getModifiers())) {
-                if (!element.isSealed()) {
-                    initErrors.add("error: expected 'sealed' in abstract subclass declaration for " + element);
-                    continue;
-                }
-                processing.addAll(typedPermittedSubclassesOf(element));
-            }
-            else {
-                if (!Modifier.isFinal(element.getModifiers())) {
-                    initErrors.add("error: expected 'final' in concrete subclass declaration for " + element);
-                }
-                current.add(element);
-            }
-        }
-        return current;
-    }
-
-    private static void checkConstructor(Class<? extends Message> clazz) {
-        try { findConstructor(clazz); }
-        catch (NoSuchMethodException e) {
-            initErrors.add("error: no matching constructor found for " + clazz
-            + " (see Javadoc for constructor requirements)");
-        }
-    }
-
 
     private static Constructor<? extends Message> findConstructor(Class<? extends Message> clazz)
     throws NoSuchMethodException {

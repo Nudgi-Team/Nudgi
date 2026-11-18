@@ -1,7 +1,6 @@
 package io.github.Nudgi.control.network.protocol;
 
 import io.github.Nudgi.control.network.TurnStep;
-import io.github.Nudgi.control.network.protocol.config.SourceContext;
 
 public final class StepMessage extends Message {
     private final TurnStep step;

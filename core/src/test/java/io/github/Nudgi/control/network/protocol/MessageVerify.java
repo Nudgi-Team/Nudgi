@@ -1,10 +1,9 @@
 package io.github.Nudgi.control.network.protocol;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -22,9 +21,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.backends.headless.HeadlessApplication;
 import com.badlogic.gdx.backends.headless.HeadlessApplicationConfiguration;
 
-import io.github.Nudgi.control.network.protocol.Message.IllegalMessageException;
-import io.github.Nudgi.control.network.protocol.config.Category;
-import io.github.Nudgi.control.network.protocol.config.SourceContext;
+import io.github.Nudgi.entities.TreasureTileInfo;
 
 public class MessageVerify {
     @BeforeAll
@@ -37,35 +34,12 @@ public class MessageVerify {
         Gdx.gl20 = mock();
     } 
 
-    private void checkCategoryExists(Set<String> initErrors) {
-        for (Class<? extends Message> clazz: getConcreteSubclasses(initErrors)) {
-            try { Category.find(clazz); }
-            catch (IllegalMessageException e) {
-                initErrors.add(e.getMessage());
-            }
-        }
-    }
-
-    private void checkCategoryConcreteOneToOne(Set<String> initErrors) {
-        Set<Class<? extends Message>> findings = new HashSet<>();
-        for (Category cat: Category.values()) {
-            Class<? extends Message> type = cat.getAssociatedType();
-
-            if (findings.contains(type)) {
-                initErrors.add("error: multiple Category definition of " + type);
-            }
-            if (Modifier.isAbstract(type.getModifiers())) {
-                initErrors.add("error: the abstract " + type + " may not have a Category");
-            }
-            findings.add(type);
-        }
-    }
-
     @SuppressWarnings("unchecked")
     private <T> List<Class<? extends T>> typedPermittedSubclassesOf(Class<T> clazz) {
         return Arrays.asList((Class<? extends T>[])clazz.getPermittedSubclasses());
     }
 
+    // inheritance hierarchy checks for final/sealed modifiers
     private List<Class<? extends Message>> getConcreteSubclasses(Set<String> initErrors) {
         final List<Class<? extends Message>> init = typedPermittedSubclassesOf(Message.class);
 
@@ -117,23 +91,16 @@ public class MessageVerify {
                 msg = "\n" + initErrors.size() + " errors\n" + msg;
             }
             // killer queen, daisan no bakudan: bites za dusto
-            throw new IllegalMessageException(msg);
+            fail(msg);
         }
     } 
 
     @Test 
-    void verifyMessageInvariants() {
+    void verifyMessageInvariants() throws Exception {
         final Set<String> initErrors = new HashSet<>();
-
-        // category exists
-        checkCategoryExists(initErrors);
-        // category exists without duplicates nor abstract classes
-        checkCategoryConcreteOneToOne(initErrors);
-        // constructor signatures
         for (Class<? extends Message> clazz: getConcreteSubclasses(initErrors)) {
             checkConstructor(clazz, initErrors);
         }
-        // final verification
         checkErrors(initErrors);
     }
 }

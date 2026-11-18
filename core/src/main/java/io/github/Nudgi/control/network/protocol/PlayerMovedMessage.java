@@ -1,7 +1,5 @@
 package io.github.Nudgi.control.network.protocol;
 
-import io.github.Nudgi.control.network.protocol.config.SourceContext;
-
 public final class PlayerMovedMessage extends Message {
     private final Contextual<Integer> playerID = new Contextual<>(SourceContext.SERVER);
     private final int toTileID;

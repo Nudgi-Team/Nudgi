@@ -1,6 +1,7 @@
 package io.github.Nudgi.entities;
 
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.scenes.scene2d.Action;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
@@ -9,6 +10,7 @@ import com.badlogic.gdx.utils.Scaling;
 
 import io.github.Nudgi.Direction;
 import io.github.Nudgi.TreasureManager;
+import io.github.Nudgi.ui.ComposedActions;
 
 import java.util.ArrayList;
 import java.util.Optional;
@@ -28,6 +30,8 @@ public class Tile extends Entity<Stack> {
     private ArrayList<Player> players = new ArrayList<>();
     private Integer treasure = null;
     private PowerUp powerUp = null;
+    private Label powerUpLabel;
+    private Action treasureAction;
 
     public Tile(boolean north, boolean south, boolean east, boolean west, int tileID){
         super(new Stack());
@@ -190,11 +194,29 @@ public class Tile extends Entity<Stack> {
         tileGraphics.addActor(TreasureManager.TREASURES[treasure]);
     }
 
+
     public void addPowerup(PowerUp powerUp) {
+        if (powerUp != null) { removePowerup(); }
         this.powerUp = powerUp;
         Label label = powerUp.spawnLabel();
-        label.setVisible(true);
         tileGraphics.addActor(label);
+        powerUpLabel = label;
+        if (treasure != null) {
+            label.addAction(ComposedActions.flicker(0.8f));
+            treasureAction = ComposedActions.alternateFlicker(0.8f);
+            TreasureManager.TREASURES[treasure].addAction(treasureAction);
+        }
+    }
+
+    public void removePowerup() {
+        if (powerUp != null) {
+            tileGraphics.removeActor(powerUpLabel);
+            if (treasure != null) {
+                TreasureManager.TREASURES[treasure].removeAction(treasureAction);
+            }
+        }
+        powerUp = null;
+        powerUpLabel = null;
     }
 
     /**

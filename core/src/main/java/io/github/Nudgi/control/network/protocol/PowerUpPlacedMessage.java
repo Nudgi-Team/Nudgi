@@ -1,38 +1,27 @@
 package io.github.Nudgi.control.network.protocol;
 
-import java.util.Arrays;
-import java.util.stream.Stream;
 
 import io.github.Nudgi.entities.PowerUp;
 import io.github.Nudgi.entities.PowerUpTileInfo;
 
 public final class PowerUpPlacedMessage extends Message {
-    private final PowerUpTileInfo[] placements;
+    private final PowerUpTileInfo placement;
 
-    public PowerUpPlacedMessage(PowerUpTileInfo[] placements) {
+    public PowerUpPlacedMessage(PowerUpTileInfo placement) {
         super(SourceContext.ANY);
-        this.placements = placements.clone();
+        this.placement = placement;
     }
 
     PowerUpPlacedMessage(SourceContext source, String[] args) {
-        super(source);
-        placements = new PowerUpTileInfo[args.length/2];
-        for (int i = 0; i < args.length; i += 2) {
-            PowerUp powerUp = PowerUp.valueOf(args[i]);
-            int onTile = Integer.parseInt(args[i+1]);
-            placements[i/2] = new PowerUpTileInfo(powerUp, onTile);
-        }
+        this(new PowerUpTileInfo(PowerUp.valueOf(args[0]), Integer.parseInt(args[1])));
     }
 
-    public PowerUpTileInfo[] getPlacements() {
-        return placements.clone();
+    public PowerUpTileInfo getPlacement() {
+        return placement;
     }
 
     @Override 
     protected String[] serialized() {
-        return Arrays.stream(placements)
-            .flatMap(info -> Stream.of(info.powerUp().name(), info.onTileID()))
-            .map(String::valueOf)
-            .toArray(String[]::new);
+        return new String[] { placement.powerUp().name(), String.valueOf(placement.onTileID()) };
     }
 }

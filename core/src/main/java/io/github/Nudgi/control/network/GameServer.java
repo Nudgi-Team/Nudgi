@@ -5,6 +5,7 @@ import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ThreadLocalRandom;
 
 import io.github.Nudgi.TreasureManager;
 import io.github.Nudgi.control.MessageHandler;
@@ -12,6 +13,8 @@ import io.github.Nudgi.control.NetworkController;
 import io.github.Nudgi.control.network.protocol.*;
 import io.github.Nudgi.control.network.protocol.Message.MessageDeserializationException;
 import io.github.Nudgi.entities.PlayerManager;
+import io.github.Nudgi.entities.PowerUp;
+import io.github.Nudgi.entities.PowerUpTileInfo;
 
 public class GameServer implements MessageHandler {
     public static final int DEFAULT_PORT = 5000;
@@ -86,6 +89,18 @@ public class GameServer implements MessageHandler {
         return ids;
     }
 
+    private int randomTile() {
+        return ThreadLocalRandom.current().nextInt(1, tileCount+1);
+    }
+
+    // FIXME: does not check for duplicates or 0 path tiles
+    private void broadcastRandomPowerup() {
+        int tile = randomTile();
+        PowerUp powerUp = PowerUp.random();
+        var info = new PowerUpTileInfo(powerUp, tile);
+        broadcast(new PowerUpPlacedMessage(info));
+    }
+
     @Override
     public void onPlayerMoved(int from, PlayerMovedMessage m) {
         if (!turnManager.isCurrent(from) || turnManager.getStep() != TurnStep.MOVING) return;
@@ -93,6 +108,9 @@ public class GameServer implements MessageHandler {
         int tile = m.getTileID();
         broadcast(new PlayerMovedMessage(tile, from));
         turnManager.endTurn(from);
+        if (ThreadLocalRandom.current().nextDouble(0, 1) < 0.25) {
+            broadcastRandomPowerup();
+        }
     }
 
     @Override 
@@ -118,6 +136,12 @@ public class GameServer implements MessageHandler {
     public void onStart(int from) {
         if (from != 0) { return; }
         broadcast(new StartNotification());
+        broadcast(boardMessage);
+
+        for (int i = 0; i < 3; i++) {
+            broadcastRandomPowerup();
+        }
+
         turnManager.refresh();
         for (ClientHandler client: clients) {
             int[] assignments = TreasureManager.randomTreasures(TREASURES_PER_PLAYER);
@@ -127,6 +151,7 @@ public class GameServer implements MessageHandler {
 
     @Override 
     public void onPowerUp(int from, PowerUpMessage m) {
+        if (!turnManager.isCurrent(from) || turnManager.getStep() != TurnStep.MOVING) { return; }
         broadcast(m);
     }
 
@@ -185,8 +210,6 @@ public class GameServer implements MessageHandler {
                     id = newId;
 
                     send(new WelcomeMessage(id));
-                    if (boardMessage != null) send(boardMessage);
-
                     newPlayerNotify();
 
                     controller = new NetworkController(GameServer.this, id);

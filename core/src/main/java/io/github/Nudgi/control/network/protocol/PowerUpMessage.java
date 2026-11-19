@@ -26,6 +26,10 @@ public final class PowerUpMessage extends Message {
         return userId;
     }
 
+    public PowerUpAction getActionType() {
+        return action;
+    }
+
     @Override 
     protected String[] serialized() {
         return new String[] { powerUp.name(), String.valueOf(userId), action.name() };

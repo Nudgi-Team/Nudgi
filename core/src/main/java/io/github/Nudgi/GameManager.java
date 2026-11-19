@@ -22,7 +22,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
+import io.github.Nudgi.entities.Enemy;
 import io.github.Nudgi.entities.Player;
+import io.github.Nudgi.entities.TheChaser;
 import io.github.Nudgi.entities.TrivialEntity;
 import io.github.Nudgi.entities.ShiftArrow.ShiftID;
 import io.github.Nudgi.network.GameClient;
@@ -30,6 +32,7 @@ import io.github.Nudgi.network.GameServer;
 import io.github.Nudgi.network.TurnStep;
 
 import io.github.Nudgi.network.protocol.*;
+import io.github.Nudgi.network.protocol.EnemyMovedMessage;
 import io.github.Nudgi.network.protocol.Message.MessageDeserializationException;
 
 public class GameManager implements Disposable, MessageHandler {
@@ -63,8 +66,11 @@ public class GameManager implements Disposable, MessageHandler {
     private Label lobbyLabel = UIService.createLabel("See instructions above.");
     private Image lobbyPointer = new Image(new Texture("EmptyTile.png"));
     private final Stage stage;
-    
-    public GameManager(Board board, Stage stage) {  
+
+    private final Enemy[] enemies = new Enemy[4];
+
+
+    public GameManager(Board board, Stage stage) {
         this(board, stage, r -> Gdx.app.postRunnable(r));
     }
 
@@ -118,7 +124,7 @@ public class GameManager implements Disposable, MessageHandler {
         started = true;
         try {
             Vector2 size = board.getGridSize();
-            server = new GameServer(GameServer.DEFAULT_PORT, 4, new BoardMessage(board.getAllPaths()), (int) (size.x * size.y));
+            server = new GameServer(GameServer.DEFAULT_PORT, 4, new BoardMessage(board.getAllPaths()), (int) (size.x * size.y), this::moveEnemies);
             server.start();
             hostInfo = " - hosting on " + GameServer.getLanAddresses();
             System.out.println("Hosting. Others join with one of: " + GameServer.getLanAddresses());
@@ -163,6 +169,16 @@ public class GameManager implements Disposable, MessageHandler {
             winningPositions[i] = winMapping.cpy().scl(board.getGridSize()).sub(winMapping);
             board.initializePlayer(players[i], boardCornerPos);
         }
+
+        enemies[0] = new Enemy(3,3, board.getTileSize(), board.getTileSize(), stage, 0, "Enemy.png");
+        board.initializeEnemy(enemies[0], new Vector2(3,3));
+        enemies[1] = new Enemy(5,5, board.getTileSize(), board.getTileSize(), stage, 1, "Enemy.png");
+        board.initializeEnemy(enemies[1], new Vector2(5,5));
+        enemies[2] = new TheChaser(3,5, board.getTileSize(), board.getTileSize(), stage, 2);
+        board.initializeEnemy(enemies[2], new Vector2(3,5));
+        enemies[3] = new TheChaser(5,3, board.getTileSize(), board.getTileSize(), stage, 3);
+        board.initializeEnemy(enemies[3], new Vector2(5,3));
+
 
         board.forEachTile((pos, tile) -> tile.addListener(this::handleTileClick));
         board.forEachTile((pos, tile) -> stage.addActor(tile.getActor()));
@@ -264,49 +280,69 @@ public class GameManager implements Disposable, MessageHandler {
         return networked() && turnId == myId;
     }
 
-    @Override 
+    @Override
     public void onWelcome(int from, WelcomeMessage m) {
         myId = m.getNewID();
         status = "You are player " + getPlayerDisplayID(myId) + hostInfo;
     }
 
-    @Override 
+    @Override
     public void onBoard(int from, BoardMessage m) {
         int[] paths = m.getPaths();
         board.applyAllPaths(paths);
     }
 
-    @Override 
+    @Override
     public void onPlayerMoved(int from, PlayerMovedMessage m) {
         Player player = findPlayerByID(m.getPlayerID());
         TileInfo target = board.fetchTile(m.getTileID());
-        applyMove(player, target.pos());
+        movePlayer(player, target.pos());
         generateRandomMovement();
         if (playerWon(player) && myId == player.getID().intValue()) {
             client.send(new WinMessage(player.getID()));
         }
+
+        checkForDeath();
     }
 
-    @Override 
+    @Override
+    public void onEnemyMoved(int from, EnemyMovedMessage m){
+        Enemy enemy = findEnemyByID(m.getEnemyID());
+        TileInfo target = board.fetchTile(m.getTileID());
+        moveEnemy(enemy, target.pos());
+        generateRandomMovement();
+
+        checkForDeath();
+    }
+
+    @Override
+    public void onPlayerRespawned(int from, PlayerRespawnedMessage m)
+    {
+        Player player = findPlayerByID(m.getPlayerID());
+        TileInfo target = board.fetchTile(m.getTileID());
+        movePlayer(player, target.pos());
+    }
+
+    @Override
     public void onTurn(int from, TurnMessage m) {
         turnId = m.getTurnPlayerID();
         board.forEachTile((pos, tile) -> tile.setHighlighted(false));
     }
 
-    @Override 
+    @Override
     public void onFull(int from) {
         rejected = true;
         started = false;
         status = "Game room is full";
     }
 
-    @Override  
+    @Override
     public void onWin(int from, WinMessage m) {
         Player player = findPlayerByID(m.getWinnerID());
         endGame(player + " has won!");
     }
 
-    @Override 
+    @Override
     public void onShift(int from, ShiftMessage m) {
         ShiftID id = m.getShiftID();
         board.shift(id);
@@ -320,7 +356,7 @@ public class GameManager implements Disposable, MessageHandler {
         }
     }
 
-    @Override 
+    @Override
     public void onStart(int from) {
         startGame();
     }
@@ -339,6 +375,34 @@ public class GameManager implements Disposable, MessageHandler {
     public void setDispatcher(Consumer<Message> dispatcher) {
         this.dispatcher = dispatcher;
     }
+
+    private void checkForDeath(){
+        if(server == null) return;
+        for(Enemy enemy : enemies){
+            for(Player player : players){
+                if (board.getPlayerPosition(player).equals(board.getEnemyPosition(enemy))){
+                    Vector2 newPos;
+                    do{
+                        newPos = board.getRandomValidPos();
+                    }while(board.enemyWithinOneTile(newPos));
+                    server.onPlayerRespawned(0, new PlayerRespawnedMessage(player.getID(), board.fetchTile(newPos).getID()));
+                }
+            }
+        }
+    }
+
+
+    private void moveEnemies(){
+        if(server != null){
+            for(Enemy enemy : enemies){
+                System.out.println("Moving Enemy: " + enemy.getID());
+                enemy.move(board);
+                server.onEnemyMoved(0, new EnemyMovedMessage(enemy.getID(), board.fetchTile(board.getEnemyPosition(enemy)).tileID));
+            }
+            checkForDeath();
+        }
+    };
+
 
     private void generateRandomMovement() {
         int currentMovement = ThreadLocalRandom.current().nextInt(1, 7);
@@ -380,6 +444,16 @@ public class GameManager implements Disposable, MessageHandler {
         }
         throw new IllegalArgumentException("Failed to find player with id " + id);
     }
+
+    private Enemy findEnemyByID(int id) {
+        for (Enemy e: enemies) {
+            if (e != null && e.getID().equals(id)) {
+                return e;
+            }
+        }
+        throw new IllegalArgumentException("Failed to find enemy with id " + id);
+    }
+
 
     private void handlePlayerClick(int targetPlayerID) {
         // Possibly change this to a tooltip in the future showing the player id and their
@@ -425,10 +499,16 @@ public class GameManager implements Disposable, MessageHandler {
         stage.addActor(baseButton);
     }
 
-    private void applyMove(Player p, Vector2 newPos) {
+    private void movePlayer(Player p, Vector2 newPos) {
         board.movePlayer(p, newPos);
         System.out.println("MOVED " + p + " to " + newPos);
     }
+
+    private void moveEnemy(Enemy e, Vector2 newPos) {
+        board.moveEnemy(e, newPos);
+        //System.out.println("MOVED " + e + " to " + newPos);
+    }
+
 
 
     private boolean playerWon(Player p) {

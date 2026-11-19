@@ -3,7 +3,7 @@ package io.github.Nudgi;
 import io.github.Nudgi.network.protocol.*;
 
 /**
- * 
+ *
  * @java 21
  */
 public class NetworkController {
@@ -37,7 +37,7 @@ public class NetworkController {
      * @param lock the new lock. Pass null to remove the lock from this controller.
      */
     public void synchronize(Object lock) {
-        this.lock = lock; 
+        this.lock = lock;
     }
 
     /**
@@ -62,17 +62,19 @@ public class NetworkController {
 
     private void dispatch(Message msg) {
         switch(msg) {
-            case null                   -> System.out.println("null message - no effect");
-            case PlayerMovedMessage m   -> handler.onPlayerMoved(id, m);
-            case BoardMessage m         -> handler.onBoard(id, m);
-            case ShiftMessage m         -> handler.onShift(id, m);
-            case FullNotification _     -> handler.onFull(id);
-            case StartNotification _    -> handler.onStart(id);
-            case StepMessage m          -> handler.onStep(id, m);
-            case TurnMessage m          -> handler.onTurn(id, m);
-            case WelcomeMessage m       -> handler.onWelcome(id, m);
-            case WinMessage m           -> handler.onWin(id, m);
-            case NewPlayerMessage m     -> handler.onNewPlayer(id, m);
+            case null                     -> System.out.println("null message - no effect");
+            case PlayerMovedMessage m     -> handler.onPlayerMoved(id, m);
+            case PlayerRespawnedMessage m -> handler.onPlayerRespawned(id, m);
+            case EnemyMovedMessage m      -> handler.onEnemyMoved(id, m);
+            case BoardMessage m           -> handler.onBoard(id, m);
+            case ShiftMessage m           -> handler.onShift(id, m);
+            case FullNotification _       -> handler.onFull(id);
+            case StartNotification _      -> handler.onStart(id);
+            case StepMessage m            -> handler.onStep(id, m);
+            case TurnMessage m            -> handler.onTurn(id, m);
+            case WelcomeMessage m         -> handler.onWelcome(id, m);
+            case WinMessage m             -> handler.onWin(id, m);
+            case NewPlayerMessage m       -> handler.onNewPlayer(id, m);
         }
     }
 }

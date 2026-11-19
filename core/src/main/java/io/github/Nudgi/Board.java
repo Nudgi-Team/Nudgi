@@ -275,12 +275,10 @@ public class Board {
         }
     }
 
-    public void placePowerUps(PowerUpTileInfo[] powerUps) {
-        for (PowerUpTileInfo info: powerUps) {
-            TileInfo target = fetchTile(info.onTileID());
-            PowerUp powerUp = info.powerUp();
-            target.tile().addPowerup(powerUp);
-        }
+    public void placePowerUp(PowerUpTileInfo info) {
+        TileInfo target = fetchTile(info.onTileID());
+        PowerUp powerUp = info.powerUp();
+        target.tile().addPowerup(powerUp);
     }
 
     public Vector2 getPosition() {

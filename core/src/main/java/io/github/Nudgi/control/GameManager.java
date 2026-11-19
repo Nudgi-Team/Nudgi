@@ -17,6 +17,7 @@ import com.badlogic.gdx.utils.Disposable;
 
 import io.github.Nudgi.Board;
 import io.github.Nudgi.TreasureManager;
+import io.github.Nudgi.control.PowerUpController.SpeedBoost;
 import io.github.Nudgi.control.network.GameClient;
 import io.github.Nudgi.control.network.GameServer;
 import io.github.Nudgi.control.network.TurnStep;
@@ -26,6 +27,7 @@ import io.github.Nudgi.control.network.protocol.PowerUpMessage.PowerUpAction;
 import io.github.Nudgi.control.network.protocol.TreasureMessage.Delta;
 import io.github.Nudgi.entities.Player;
 import io.github.Nudgi.entities.PlayerManager;
+import io.github.Nudgi.entities.PowerUp;
 import io.github.Nudgi.entities.PowerUpTileInfo;
 import io.github.Nudgi.entities.ShiftID;
 import io.github.Nudgi.entities.Tile;
@@ -41,6 +43,7 @@ import io.github.Nudgi.ui.StageManager.Mode;
 import io.github.Nudgi.ui.UIManager.GameUI;
 import io.github.Nudgi.ui.game.BoardUI;
 import io.github.Nudgi.ui.game.FullScreenPopUpUI;
+import io.github.Nudgi.ui.game.PowerUpUI;
 import io.github.Nudgi.ui.lobby.LobbyUI;
 
 public class GameManager implements Disposable, MessageHandler {
@@ -63,8 +66,9 @@ public class GameManager implements Disposable, MessageHandler {
     private boolean devMode = false;
     private Consumer<Message> dispatcher;
     private UIManager ui;
-    private PowerUpController powerUpController;
+    private PowerUpController powerUpController = new PowerUpController();
     private TreasureController treasureController = new TreasureController();
+    private int movement = 0;
     
     public GameManager(Board board) {
         this(board, r -> Gdx.app.postRunnable(r));
@@ -130,11 +134,12 @@ public class GameManager implements Disposable, MessageHandler {
 
         GameUI mainUi = ui.getGameUI();
         BoardUI boardUI = mainUi.board();
+        PowerUpUI powerUI = mainUi.powerUpUI();
         boardUI.onTileClicked(this::handleTileClick);
         boardUI.onarrowClicked(this::handleArrowClick);
+        powerUI.onPowerUpClicked(this::handlePowerClick);
 
         uiInit();
-        powerUpController = new PowerUpController(board, mainUi);
     }
 
     private void startTyping() {
@@ -349,16 +354,37 @@ public class GameManager implements Disposable, MessageHandler {
         PlayerManager.fetchPlayer(targetPlayer).assignTreasures(treasures);
     }
 
+    private void handleSpecialPowerEffect() {
+        switch(powerUpController.getSpecialInstruction()) {
+            case null -> {}
+            case SpeedBoost(int boost) -> {
+                movement += boost;
+                findAvailablePaths();
+            }
+        }
+    }
+
     @Override 
     public void onPowerUp(int from, PowerUpMessage m) {
         Player user = PlayerManager.fetchPlayer(m.getUserId());
-        powerUpController.activatePowerup(user, m.getPowerUp());
+        PowerUp power = m.getPowerUp();
+        switch(m.getActionType()) {
+            case ACTIVATE -> {
+                powerUpController.activatePowerup(user, power);
+                handleSpecialPowerEffect();
+            }
+            case COLLECT -> {
+                user.collectPowerup(power);
+                Tile powerTile = board.fetchTile(board.getPlayerPosition(user));
+                powerTile.removePowerup();
+            }
+        }
     }
 
     @Override 
     public void onPowerUpPlaced(int from, PowerUpPlacedMessage m) {
-        PowerUpTileInfo[] placements = m.getPlacements();
-        board.placePowerUps(placements);
+        PowerUpTileInfo placement = m.getPlacement();
+        board.placePowerUp(placement);
     }
 
     // Simple communication dictionary for communicating between server and clients
@@ -378,13 +404,16 @@ public class GameManager implements Disposable, MessageHandler {
         this.dispatcher = dispatcher;
     }
 
-    private void generateRandomMovement() {
-        int currentMovement = ThreadLocalRandom.current().nextInt(1, 7);
-
-        Set<Vector2> visited = board.pathFind(board.getPlayerPosition(PlayerManager.getYourself()), currentMovement);
+    private void findAvailablePaths() {
+        Set<Vector2> visited = board.pathFind(board.getPlayerPosition(PlayerManager.getYourself()), movement);
         for (Vector2 moveEligible: visited) {
             board.fetchTile(moveEligible).setHighlighted(true);
         }
+    }
+
+    private void generateRandomMovement() {
+        movement = ThreadLocalRandom.current().nextInt(1, 7);
+        findAvailablePaths();
     }
 
     private void clearHighlights() {
@@ -415,19 +444,27 @@ public class GameManager implements Disposable, MessageHandler {
         }
     }
 
+    private void handlePowerClick(int slot, PowerUp powerUp) {
+        Player you = PlayerManager.getYourself();
+        if (turnId != you.getID() || step != TurnStep.MOVING) { return; }
+
+        you.usePowerUp(slot);
+        client.send(new PowerUpMessage(powerUp, you.getID(), PowerUpAction.ACTIVATE));
+    }
+
     private void handleTileClick(int tileID) {
         if ((!myTurn() || step != TurnStep.MOVING) && !devMode) { return; }
 
         TileInfo target = board.fetchTile(tileID);
         if (!target.tile().isHighlighted()) { return; }
-
-        client.send(new PlayerMovedMessage(tileID));
         
         Player player = PlayerManager.getYourself();
         target.tile().getTreasure().ifPresent(treasure -> landedOnTreasure(player, treasure));
         target.tile().getPowerup().ifPresent(powerUp -> 
             client.send(new PowerUpMessage(powerUp, player.getID(), PowerUpAction.COLLECT))
         );
+
+        client.send(new PlayerMovedMessage(tileID));
     }
 
     private void handleArrowClick(ShiftID sid) {

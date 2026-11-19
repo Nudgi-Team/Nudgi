@@ -21,8 +21,6 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.backends.headless.HeadlessApplication;
 import com.badlogic.gdx.backends.headless.HeadlessApplicationConfiguration;
 
-import io.github.Nudgi.entities.TreasureTileInfo;
-
 public class MessageVerify {
     @BeforeAll
     static void setup() {

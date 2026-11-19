@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.Align;
@@ -24,6 +25,7 @@ public final class TreasureManager {
             TREASURES[i] = UIService.createLabel("T" + (i+1));
             TREASURES[i].setFontScale(0.7f);
             TREASURES[i].setAlignment(Align.center);
+            TREASURES[i].setColor(Color.YELLOW);
             TREASURE_IDS[i] = i;
             available.add(i);
         }

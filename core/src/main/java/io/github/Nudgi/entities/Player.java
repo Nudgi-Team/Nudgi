@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.function.Consumer;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -30,7 +32,9 @@ public class Player extends Entity<Image> implements Disposable {
     private final Deque<Integer> treasuresToHunt = new ArrayDeque<>();
     private final Deque<Integer> treasuresCollected = new ArrayDeque<>();
     private final List<Runnable> treasuresChangedListeners = new ArrayList<>();
-    
+    private final List<Consumer<PowerUpSlotChange>> powerUpChangedListeners = new ArrayList<>();
+    private final PowerUp[] powerUps = new PowerUp[3];
+
     /**
      * Creates a new Player.
      * @param playerID a unique identifier for this instance.
@@ -76,6 +80,10 @@ public class Player extends Entity<Image> implements Disposable {
         treasuresChangedListeners.add(listener);
     }
 
+    public void addPowerUpListener(Consumer<PowerUpSlotChange> listener) {
+        powerUpChangedListeners.add(listener);
+    }
+
     public void assignTreasures(int[] treasures) {
         for (int i = 0; i < treasures.length; i++) {
             treasuresToHunt.add(treasures[i]);
@@ -95,6 +103,45 @@ public class Player extends Entity<Image> implements Disposable {
     public void collectTreasure() {
         moveTop(treasuresToHunt, treasuresCollected);
         System.out.println("Treasure collected!");
+    }
+
+    private OptionalInt nextFreePowerSlot() {
+        for (int i = 0; i < powerUps.length; i++) {
+            if (powerUps[i] == null) { return OptionalInt.of(i); }
+        }
+        return OptionalInt.empty();
+    }
+
+    public void collectPowerup(PowerUp powerUp) {
+        nextFreePowerSlot().ifPresent(i -> {
+            powerUps[i] = powerUp;
+            for (Consumer<PowerUpSlotChange> listener: powerUpChangedListeners) {
+                listener.accept(new PowerUpSlotChange(powerUp, i, SlotChange.COLLECTED));
+            }
+        });
+    }
+
+    /**
+     * Uses a powerup in the target slot.
+     * @param slot the slot number, between 0 and 2.
+     */
+    public void usePowerUp(int slot) {
+        if (powerUps[slot] != null) {
+            for (Consumer<PowerUpSlotChange> listener: powerUpChangedListeners) {
+                listener.accept(new PowerUpSlotChange(powerUps[slot], slot, SlotChange.USED));
+            }
+        }
+        powerUps[slot] = null;
+    }
+
+    /**
+     * Gets a power up in a specific slot, if one exists.
+     * @param slot the slot number, between 0 and 2.
+     * @return An Optional containing the power up in this slot, if any;
+     * otherwise an empty Optional.
+     */
+    public Optional<PowerUp> getPowerupInSlot(int slot) {
+        return Optional.ofNullable(powerUps[slot]);
     }
 
     /**
@@ -134,5 +181,12 @@ public class Player extends Entity<Image> implements Disposable {
     @Override 
     public void dispose() {
         playerTexture.dispose();
+    }
+
+    public record PowerUpSlotChange(PowerUp powerUp, int slot, SlotChange changeType) {}
+
+    public enum SlotChange {
+        COLLECTED,
+        USED,
     }
 }

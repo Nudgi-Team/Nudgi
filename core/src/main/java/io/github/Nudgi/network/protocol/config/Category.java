@@ -14,6 +14,8 @@ public enum Category {
     WELCOME (WelcomeMessage.class),
     BOARD (BoardMessage.class),
     PLAYER_MOVED (PlayerMovedMessage.class),
+    ENEMY_MOVED (EnemyMovedMessage.class),
+    PLAYER_RESPAWNED (PlayerRespawnedMessage.class),
     SHIFT (ShiftMessage.class),
     FULL (FullNotification.class),
     WIN (WinMessage.class),

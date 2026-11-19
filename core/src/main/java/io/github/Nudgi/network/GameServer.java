@@ -8,7 +8,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import io.github.Nudgi.MessageHandler;
 import io.github.Nudgi.NetworkController;
+import io.github.Nudgi.entities.Player;
 import io.github.Nudgi.network.protocol.*;
+import io.github.Nudgi.network.protocol.EnemyMovedMessage;
 import io.github.Nudgi.network.protocol.Message.MessageDeserializationException;
 
 public class GameServer implements MessageHandler {
@@ -22,9 +24,9 @@ public class GameServer implements MessageHandler {
     private ServerSocket serverSocket;
     private volatile boolean running;
     private boolean gameStarted = false;
-    
+
     // Standard server attributes
-    public GameServer(int port, int maxPlayers, BoardMessage boardMessage, int tileCount) {
+    public GameServer(int port, int maxPlayers, BoardMessage boardMessage, int tileCount, Runnable onRoundEnd) {
         this.port = port;
         this.maxPlayers = maxPlayers;
         this.boardMessage = boardMessage;
@@ -33,7 +35,9 @@ public class GameServer implements MessageHandler {
             id -> {
                 broadcast(new TurnMessage(id));
                 broadcast(new StepMessage(TurnStep.SHIFTING));
-            });
+            },
+            onRoundEnd
+            );
     }
 
     public void start() throws IOException {
@@ -93,13 +97,13 @@ public class GameServer implements MessageHandler {
         turnManager.endTurn(from);
     }
 
-    @Override 
+    @Override
     public void onWin(int from, WinMessage m) {
         broadcast(m);
         turnManager.setStep(null);
     }
 
-    @Override 
+    @Override
     public void onShift(int from, ShiftMessage m) {
         if (!turnManager.isCurrent(from) || turnManager.getStep() != TurnStep.SHIFTING) { return; }
         broadcast(m);
@@ -107,7 +111,17 @@ public class GameServer implements MessageHandler {
         broadcast(new StepMessage(TurnStep.MOVING));
     }
 
-    @Override 
+    @Override
+    public void onEnemyMoved(int from, EnemyMovedMessage m) {
+        broadcast(m);
+    }
+
+    @Override
+    public void onPlayerRespawned(int from, PlayerRespawnedMessage m) {
+        broadcast(m);
+    }
+
+    @Override
     public void onStart(int from) { // Allows host to start the game in the future
         if (from == 0) {
             broadcast(new StartNotification());
@@ -127,6 +141,7 @@ public class GameServer implements MessageHandler {
         } catch (SocketException ignored) {}
         return result;
     }
+
 
     private class ClientHandler implements Runnable {
         private final Socket socket;
@@ -158,7 +173,7 @@ public class GameServer implements MessageHandler {
                     if (boardMessage != null) send(boardMessage);
                     clients.add(this);
                     if (clients.size() >= 2) { // Don't start until 2+ players
-                        if (!gameStarted) { // On first start, notify both host and the other player 
+                        if (!gameStarted) { // On first start, notify both host and the other player
                             gameStarted = true;
                             broadcast(new StartNotification());
                         }
@@ -168,10 +183,10 @@ public class GameServer implements MessageHandler {
                         turnManager.refresh();
                     }
                     controller = new NetworkController(GameServer.this, id);
-                    controller.synchronize(lock); 
+                    controller.synchronize(lock);
                 }
                 String line;
-                while ((line = in.readLine()) != null) { 
+                while ((line = in.readLine()) != null) {
                     try {
                         controller.fire(Message.deserialize(line));
                     }

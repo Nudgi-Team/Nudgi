@@ -8,7 +8,7 @@ import io.github.Nudgi.network.protocol.*;
  * <p>
  * The methods of this interface conventionally begin with the word "on", followed
  * by the name of the Message they respond to, without the word "Message"
- * or "Notification" (e.g. PlayerMovedMessage -> onPlayerMoved). 
+ * or "Notification" (e.g. PlayerMovedMessage -> onPlayerMoved).
  */
 public interface MessageHandler {
     default void onPlayerMoved(int from, PlayerMovedMessage msg) {}
@@ -16,6 +16,11 @@ public interface MessageHandler {
     default void onStart(int from) {}
     default void onShift(int from, ShiftMessage msg) {}
     default void onStep(int from, StepMessage msg) {}
+
+    void onEnemyMoved(int from, EnemyMovedMessage m);
+
+    void onPlayerRespawned(int from, PlayerRespawnedMessage m);
+
     default void onTurn(int from, TurnMessage msg) {}
     default void onWelcome(int from, WelcomeMessage msg) {}
     default void onWin(int from, WinMessage msg) {}

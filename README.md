@@ -15,7 +15,7 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 
 ## [Reflection · Lessons Learned](https://docs.google.com/document/d/1O0x4PC4i8m6M8NbzNszMoR0KD0okovg0aZps05k7_Zs/edit?tab=t.0 "Lessons Learned")
 
-## [Current status report (link)](https://docs.google.com/document/d/1uAmbgd-xzW6CJd4iZIRgxwV5wv8-pqGK/edit "Current Status Report")
+## [Current status report (link)](https://docs.google.com/document/d/1wflOfAYG6cjado1b_b2I6vfSDP1U6Atz/edit "Current Status Report")
 - Past status reports:
     - [Cycle 1 Report #1](https://docs.google.com/document/d/10v7Pbj6k7JzzrXYRHgn1d2ci_lSR2HV-/edit#heading=h.sikzabrle87h "Cycle 1 Status Report 1")
     - [Cycle 1 Report #2](https://docs.google.com/document/d/1Z5WFBWtPt5FA6oTMBvIoCHYWB1SKYJKe/edit "Cycle 1 Status Report 2")
@@ -23,6 +23,7 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
     - [Cycle 2 Report #1](https://docs.google.com/document/d/1nz05WlxeEn5di-28SC_VPLMML8aM6izo/edit#heading=h.sikzabrle87h "Cycle 2 Status Report 1")
     - [Cycle 2 Report #2](https://docs.google.com/document/d/1D0hgwZCktru1XIh7CJmHyYiXFAEU5ZCW/edit#heading=h.sikzabrle87h "Cycle 2 Status Report 2")
     - [Cycle 2 Report #3](https://docs.google.com/document/d/1Gby3SP85rmwGsT6mbamv2NT0NxNmbqEc/edit#heading=h.sikzabrle87h "C2 R3")
+    - [Cycle 3 Report #1](https://docs.google.com/document/d/1uAmbgd-xzW6CJd4iZIRgxwV5wv8-pqGK/edit "C2 R4")
   
 ## Design Docs - [Template (link)](https://docs.google.com/document/d/15QqPoigbQFneIwy-A7bhc5gTs5FZ6y1akalJa--ZtyA/edit?tab=t.0 "Design Doc Template (copy to use)")
 
@@ -34,6 +35,7 @@ In Nudgi, players race to be the first to escape with their treasures out of a t
 - [Treasure](https://docs.google.com/document/d/18vZ_ndwaJ78zIjhK0ZYcd0S8GAxvvKCrjdHLbsWWsec/edit?tab=t.0 "Treasures")
 - [Host/Join UI](https://docs.google.com/document/d/1s2kllPNH_EcAKvzTRT19EyOp7k7W8CV777eENB2xZEA/edit?tab=t.0 "Host/Join UI")
 - [Base UI](https://docs.google.com/document/d/1bDgrbJj6tfwLwSompJQ12qWnkeK2Jm4jvPCQNOoQ4E0/edit?tab=t.0 "Base UI")
+- [Animations&Sounds](https://docs.google.com/document/d/1FGEVaCNDKfBXMReq8QU0LQA8Xa6SYYYiUxYdnALowWQ/edit?tab=t.0 "Animations&Sounds")
 
 ### Completed
 

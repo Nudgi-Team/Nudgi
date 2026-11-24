@@ -63,5 +63,5 @@ Expected:
 Death With No Collected Treasure:
 Action: Player dies before collecting treasure
 Expected:
-    No errors occure
+    No errors occur
     Treasure start remains unchanged

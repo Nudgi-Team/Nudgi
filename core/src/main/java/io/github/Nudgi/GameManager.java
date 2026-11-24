@@ -24,7 +24,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 
 import io.github.Nudgi.entities.Enemy;
 import io.github.Nudgi.entities.Player;
-import io.github.Nudgi.entities.TheChaser;
+import io.github.Nudgi.entities.EnemyTypes.TheChaser;
 import io.github.Nudgi.entities.TrivialEntity;
 import io.github.Nudgi.entities.ShiftArrow.ShiftID;
 import io.github.Nudgi.network.GameClient;

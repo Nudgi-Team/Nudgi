@@ -1,5 +1,5 @@
 
-package io.github.Nudgi.entities;
+package io.github.Nudgi.entities.EnemyTypes;
 
 
 import com.badlogic.gdx.math.Vector2;

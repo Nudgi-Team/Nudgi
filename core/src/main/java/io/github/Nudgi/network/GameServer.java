@@ -8,11 +8,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import io.github.Nudgi.MessageHandler;
 import io.github.Nudgi.NetworkController;
+import io.github.Nudgi.TreasureManager;
+import io.github.Nudgi.entities.PlayerManager;
 import io.github.Nudgi.network.protocol.*;
 import io.github.Nudgi.network.protocol.Message.MessageDeserializationException;
 
 public class GameServer implements MessageHandler {
     public static final int DEFAULT_PORT = 5000;
+    private static final int TREASURES_PER_PLAYER = TreasureManager.TREASURE_COUNT / PlayerManager.MAX_PLAYERS;
 
     private final int port, maxPlayers, tileCount;
     private final BoardMessage boardMessage;
@@ -21,8 +24,7 @@ public class GameServer implements MessageHandler {
     private final TurnManager turnManager;
     private ServerSocket serverSocket;
     private volatile boolean running;
-    private boolean gameStarted = false;
-    
+
     // Standard server attributes
     public GameServer(int port, int maxPlayers, BoardMessage boardMessage, int tileCount) {
         this.port = port;
@@ -108,10 +110,18 @@ public class GameServer implements MessageHandler {
     }
 
     @Override 
-    public void onStart(int from) { // Allows host to start the game in the future
-        if (from == 0) {
-            broadcast(new StartNotification());
-            turnManager.refresh();
+    public void onTreasure(int from, TreasureMessage m) {
+        broadcast(m);
+    }
+
+    @Override 
+    public void onStart(int from) {
+        if (from != 0) { return; }
+        broadcast(new StartNotification());
+        turnManager.refresh();
+        for (ClientHandler client: clients) {
+            int[] assignments = TreasureManager.randomTreasures(TREASURES_PER_PLAYER);
+            broadcast(new TreasureInitMessage(assignments, client.id));
         }
     }
 
@@ -146,27 +156,29 @@ public class GameServer implements MessageHandler {
 
         void close() { try { socket.close(); } catch (IOException ignored) {} }
 
+        void newPlayerNotify() {
+            broadcast(new NewPlayerMessage(id));
+            for (ClientHandler client: clients) {
+                if (client == this) continue;
+                send(new NewPlayerMessage(client.id));
+            }
+        }
+
         @Override
         public void run() {
             try {
                 synchronized (lock) {
+                    clients.add(this);
+
                     int newId = freeId();
                     if (newId < 0) { send(new FullNotification()); return; }
                     id = newId;
+
                     send(new WelcomeMessage(id));
-                    broadcast(new NewPlayerMessage(id));
                     if (boardMessage != null) send(boardMessage);
-                    clients.add(this);
-                    if (clients.size() >= 2) { // Don't start until 2+ players
-                        if (!gameStarted) { // On first start, notify both host and the other player 
-                            gameStarted = true;
-                            broadcast(new StartNotification());
-                        }
-                        else { // Afterwards, notify only new players entering
-                            send(new StartNotification());
-                        }
-                        turnManager.refresh();
-                    }
+
+                    newPlayerNotify();
+
                     controller = new NetworkController(GameServer.this, id);
                     controller.synchronize(lock); 
                 }

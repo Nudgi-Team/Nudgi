@@ -1,0 +1,67 @@
+Card Distribution:
+Action: Game starts
+Expected:
+    24 treasure cards distributed across players
+    No duplicate treasure cards across all hands
+    Each player gets the same amount of cards
+
+Treasure Spawning:
+Action: Treasure cards done generating
+Expected:
+    Each treasure card get a corresponding treasure on the board
+    Treasure is evenly distributed
+
+Treasure Spawning Constraints:
+Action: Treasure spawned
+    Only one treasure on a given square
+    No treasures on any corner tiles
+    Every treasure type spawns exactly once
+
+Wrong Treasure:
+Action: Player lands on square with treasure they don't need
+Expected:
+    Player does not collect treasure
+
+Correct Treasure:
+Action: Player lands on square with treasure they do need
+Expected:
+    Collect treasure
+    Remove treasure from the board
+    Treasure is marked as collected
+
+Correct Treasure Already Collected:
+Action: Player lands on treasure after already collecting it
+Expected:
+    Nothing happens
+
+
+Collecting Final Treasure:
+Action: Player collects their last required treasure
+Expected:
+    All treasures marked collected
+    Player is not declared winner yet
+    Player must return to starting tile
+
+Win Condition:
+Action: Player has all treasure and lands on their starting square
+Expected:
+    Player wins game
+    Game ends correctly
+
+Player Returns Early:
+Action: Player returns to their starting square before collecting all treasure
+Expected:
+    No win is granted
+
+Death With Collected Treasures
+Action: Player dies after collecting treasure
+Expected:
+    One random collected treasure is uncollected
+    Player must recollect it
+    Renaming collected treasures stay collected
+
+Death With No Collected Treasure:
+Action: Player dies before collecting treasure
+Expected:
+    No errors occur
+    Treasure start remains unchanged

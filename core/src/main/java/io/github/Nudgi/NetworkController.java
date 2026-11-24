@@ -46,7 +46,7 @@ public class NetworkController {
      * of Message received.
      * <p>
      * If a lock is present, calls to this method are synchronized on it.
-     * @param msg the Message to use.
+     * @param msg the Message to receive.
      */
     public void fire(Message msg) {
         Object current = lock;
@@ -66,13 +66,15 @@ public class NetworkController {
             case PlayerMovedMessage m   -> handler.onPlayerMoved(id, m);
             case BoardMessage m         -> handler.onBoard(id, m);
             case ShiftMessage m         -> handler.onShift(id, m);
-            case FullNotification _     -> handler.onFull(id);
-            case StartNotification _    -> handler.onStart(id);
             case StepMessage m          -> handler.onStep(id, m);
+            case TreasureMessage m      -> handler.onTreasure(id, m);
             case TurnMessage m          -> handler.onTurn(id, m);
             case WelcomeMessage m       -> handler.onWelcome(id, m);
             case WinMessage m           -> handler.onWin(id, m);
+            case TreasureInitMessage m  -> handler.onTreasureInit(id, m);
             case NewPlayerMessage m     -> handler.onNewPlayer(id, m);
+            case FullNotification _     -> handler.onFull(id);
+            case StartNotification _    -> handler.onStart(id);
         }
     }
 }

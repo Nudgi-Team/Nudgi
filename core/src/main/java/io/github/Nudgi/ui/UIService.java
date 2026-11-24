@@ -1,4 +1,6 @@
-package io.github.Nudgi;
+package io.github.Nudgi.ui;
+
+import static io.github.Nudgi.ui.StageManager.VIEW;
 
 import java.util.function.Consumer;
 
@@ -12,9 +14,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Null;
-import com.badlogic.gdx.utils.viewport.Viewport;
-
-
 /**
  * An assortment of methods allowing for easy ways of manipulating and creating TextButton
  * and Label objects. The creation methods within this class all use a default style
@@ -34,7 +33,7 @@ public final class UIService {
         DEFAULT_LABEL_STYLE.font = new BitmapFont();
         DEFAULT_LABEL_STYLE.fontColor = Color.WHITE;
     }
-
+    
     private UIService() {}
 
     public static TextButton createTextButton(@Null String message) {
@@ -98,12 +97,12 @@ public final class UIService {
         button.setStyle(style);
     }
 
-    public static void centerWidget(Viewport vp, Widget a, boolean centerX, boolean centerY) {
+    public static void centerWidget(Widget a, boolean centerX, boolean centerY) {
         if (centerX) {
-            a.setX(vp.getWorldWidth()/2 - Math.min(a.getPrefWidth()/2, vp.getWorldWidth()/2.1f));
+            a.setX(VIEW.getWorldWidth()/2 - Math.min(a.getPrefWidth()/2, VIEW.getWorldWidth()/2.1f));
         }
         if (centerY) {
-            a.setY(vp.getWorldHeight()/2 - Math.min(a.getPrefHeight()/2, vp.getWorldHeight()/2.1f));
+            a.setY(VIEW.getWorldHeight()/2 - Math.min(a.getPrefHeight()/2, VIEW.getWorldHeight()/2.1f));
         }
     }
 }

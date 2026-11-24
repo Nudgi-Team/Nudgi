@@ -15,13 +15,16 @@ public class TurnManager {
     private final Consumer<Integer> onTurn;
     private int current = -1;
 
+    private final Runnable onRoundEnd;
+
     // null = no player may perform any action (useful later on when animations need to play)
     // any non-null value = the turn player may perform the designated action
-    private TurnStep step = null; 
+    private TurnStep step = null;
 
-    public TurnManager(Supplier<Collection<Integer>> connected, Consumer<Integer> onTurn) {
+    public TurnManager(Supplier<Collection<Integer>> connected, Consumer<Integer> onTurn, Runnable onRoundEnd) {
         this.connected = connected;
         this.onTurn = onTurn;
+        this.onRoundEnd = onRoundEnd;
     }
 
     public void refresh() {
@@ -61,6 +64,11 @@ public class TurnManager {
             return;
         }
         Integer next = ids.higher(current);
+
+        if(next == null && current != -1){
+            onRoundEnd.run();
+        }
+
         startTurn(next != null ? next : ids.first());
     }
 

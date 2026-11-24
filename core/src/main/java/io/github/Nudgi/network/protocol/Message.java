@@ -88,7 +88,7 @@ import io.github.Nudgi.network.protocol.config.SourceContext;
  * - Otherwise (if 2 or more constructors are present, or if you have a parameterized constructor):
  * See Option 2 below.
  * <p>
- * <i>It is an error for any concrete subclass to not define a Deserialization Constructor, or 
+ * <i>It is an error for any concrete subclass to not define a Deserialization Constructor, or
  * to define only the constructor in Option 2, and no other constructors.</i>
  * <p>
  * #### Option 1. Deserialization Constructor()
@@ -101,7 +101,7 @@ import io.github.Nudgi.network.protocol.config.SourceContext;
  * This type of constructor conforms to the following:
  * - The elements of {@code args} only include the string representations of each
  * data field specified in the corresponding subclass's serialized representation.
- * Furthermore, the {@code SourceContext} passed in can only correspond to 
+ * Furthermore, the {@code SourceContext} passed in can only correspond to
  * any possible argument in super() calls within the subclass.
  *
  * - - In other words, {@code args} will always represent a plausible output
@@ -110,7 +110,7 @@ import io.github.Nudgi.network.protocol.config.SourceContext;
  * - The constructor must pass a SourceContext value equal to the SourceContext received
  * in the first parameter, in its call to {@code super()}. For messages with
  * only one possible context, that context may be passed directly instead.
- * 
+ *
  * - It must reconstruct the subclass in a manner such that it conforms
  * to the Inverse Invariant, from the application's perspective.
  *
@@ -122,16 +122,14 @@ import io.github.Nudgi.network.protocol.config.SourceContext;
  * for an implementation of such.
  * <p>
  * By definition, only subclasses taking Option 2 above may have contextual values.
- * 
+ *
  * @see Message#Message(SourceContext)
  * @see Notification
  * @see Message#serialized()
  * @java 17
  */
 public abstract sealed class Message
-permits BoardMessage, PlayerMovedMessage, ShiftMessage,
-        StepMessage, Notification, NewPlayerMessage,
-        TurnMessage, WelcomeMessage, WinMessage {
+        permits BoardMessage, EnemyMovedMessage, NewPlayerMessage, Notification, PlayerMovedMessage, PlayerRespawnedMessage, ShiftMessage, StepMessage, TurnMessage, WelcomeMessage, WinMessage {
     /**
      * If this character is present within the array result of {@link #serialized()},
      * a {@link BadMessageException} is thrown when {@link #toString()} is called.
@@ -146,7 +144,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
     private static final Set<String> initErrors = new HashSet<>();
 
     private final Header header;
-   
+
     // fail-fast setup: ExceptionInInitializer occurs here = something isn't right
     // verify part 1
     static {
@@ -311,7 +309,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
     public static Message deserialize(String input) throws NotAMessageException, ExceptionInDeserializerException {
         String[] fullArgs = input.split(DELIMITER_STR, -1);
         Header header;
-        try { 
+        try {
             header = extractHeader(input);
         }
         catch (IllegalArgumentException e) {
@@ -320,7 +318,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
 
         String[] args = new String[fullArgs.length-2];
         System.arraycopy(fullArgs, 2, args, 0, args.length);
-   
+
         return asDeserialized(header, args);
     }
 
@@ -341,7 +339,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
      * to serialize, an array of length 0 is returned.
      * <p>
      * It is an error for any element of the returned array to contain the {@link Message#DELIMITER}
-     * character, or for any element of the returned array to be {@code null}, or for the 
+     * character, or for any element of the returned array to be {@code null}, or for the
      * array to be {@code null}.
      * <p>
      * Empty strings will be preserved.
@@ -397,7 +395,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
      * {@link #contextualSet(Supplier)} methods.
      */
     protected final class Contextual<T> {
-        private final SourceContext context; 
+        private final SourceContext context;
         private T value = null;
 
         /**
@@ -450,7 +448,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
         /**
          * Serializes the value within this Contextual, calling
          * the supplied function and returning its result
-         * only if the context is correct. 
+         * only if the context is correct.
          * Otherwise, returns an empty String without calling the supplied function.
          * @param serializer the function to serialize a present value.
          * @return the result of serializer if the context is correct; otherwise an empty String.
@@ -469,7 +467,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
      */
     public static class BadMessageException extends RuntimeException {
         public BadMessageException(int offendingIndex, boolean nullMode) {
-            super((nullMode) 
+            super((nullMode)
                 ? "error: Element at index " + offendingIndex + " is null"
                 : "error: Element at index " + offendingIndex + " contains the prohibited delimiter character");
         }
@@ -477,7 +475,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
 
     /**
      * Thrown when a getter of a contextual value is accessed in the wrong context (e.g.
-     * a field only present with a context of {@link SourceContext#CLIENT} 
+     * a field only present with a context of {@link SourceContext#CLIENT}
      * being accessed in a Message with a context of {@link SourceContext#SERVER}).
      */
     public static class ContextMismatchException extends RuntimeException {
@@ -485,7 +483,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
             super(CONTEXT_MISMATCH);
         }
     }
-    
+
 
 
     /**
@@ -551,7 +549,7 @@ permits BoardMessage, PlayerMovedMessage, ShiftMessage,
 
         @Override
         public String toString() {
-            return category.name() + DELIMITER + source.name() + DELIMITER;  
+            return category.name() + DELIMITER + source.name() + DELIMITER;
         }
     }
 }

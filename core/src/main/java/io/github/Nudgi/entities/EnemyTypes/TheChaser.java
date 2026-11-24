@@ -5,7 +5,8 @@ package io.github.Nudgi.entities.EnemyTypes;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import io.github.Nudgi.Board;
-
+import io.github.Nudgi.entities.Enemy;
+import io.github.Nudgi.entities.Tile;
 
 import java.util.List;
 import java.util.Optional;
